@@ -1,0 +1,788 @@
+[Speaker 1]
+Hope you had a good time with a keynote with the card on, so our next topic is.
+
+[Speaker 2]
+We all know chango postgres is a backbone rule. The postpest SQL is most General application backbone right, and knowing how to add the indexes and knowing what happened to the database under the load that makes the good application great, right? So, next is a software consultant as well, technically.
+
+[Speaker 2]
+And he's well known in an amazing white lot about the database performance and optimizing database query, so I'll hand over to hakib ranaki. Today's talk, gonna take us through the trenches of the databases. But thank you!
+
+[Speaker 3]
+Hi, everyone, um, glad to see so many people who doesn't care about security. Uh so, uh? I'm working with Django and postgres for, uh, I think 10 years, maybe? Maybe even more. And during that time, I built together with my team several successful products that serve millions of users.
+
+[Speaker 3]
+Uh, active, paying users every month, and during that time, I also got to experience the full life cycle of development, starting from building something cool and see a breakdown in production. See my abstractions. Uh, you know, fall apart, rebuild, refactor, optimize, and, um. In the next 90 minutes. We are going to talk about some of the takeaways from our journey.
+
+[Speaker 3]
+So today! We are going to focus on two things. First, we are going to talk about indexes, and we're going to talk about some lesser known features and types of indexes. Okay. And we are going to talk on how they work. And when you should use them. This is the first part, the second part of the talk.
+
+[Speaker 3]
+We are going talking about concurrency, how we can handle concurrency, identify concurrency, okay, and hopefully tame it with minimal impact on our application. So we are going to build together, a URL showed in it. Okay, I'm sure that many of you are using a URL Shelton, and it's a very simple.
+
+[Speaker 3]
+That takes. A very long URL and provides a very short URL that redirects. To that long URL. The reason you would want to use such a system is? If you want to give links in a text constrained environment like SMS or tweets, then you want to take this big piece of text, make it short.
+
+[Speaker 3]
+And whenever we redirect from the show to the long URL, we keep track of the number of hits. So if you have campaigns and you want to keep track of how many people click the link? You would use this type of system, so we provide a short URL that three directly to a long URL, and we keep track of the number of hits.
+
+[Speaker 3]
+So? To build this type of system Django, we can start with a very simple model. We call it short URL. And we have ID. This is our primary key. We have a key field. The key field is the short piece of text at the end of the URL that's uniquely identifies.
+
+[Speaker 3]
+Our entry. Okay. You can also see at the top that I have a unique constraint on it. To make sure that it's Unique. I can't have too short URLs with the same key. Then we have the URL, which is the actual URL we want to redirect to. We keep track of when we created the show URL.
+
+[Speaker 3]
+And finally, we keep track of the number of hits. How many times we redirect it? So, I loaded a bunch of objects into this model, and this is. The type of system that we are going to work on from now on. So? We're going to present in Django, but at the end of the day.
+
+[Speaker 3]
+It's about SQL and databases, so let's see how we can actually get the SQL that Django is executing when we are interacting with it. So, the first option is you take a query set like this, for example. And you? Use
+
+[Speaker 1]
+The query object and you just print it.
+
+[Speaker 3]
+This gets you a query that Django is going to execute when you actually evaluate this query set. Sometimes. It's useful to not only get the query, but also get the execution plan. In other words, how the database is planning to execute our query. This is called an execution plan.
+
+[Speaker 3]
+In this case, we want to find a short URL by the key, so the database would use an index scan. An index scan on the key. Okay on the index that we have on the key. The thing about execution plan and the explain command is that it's not actually executing our query.
+
+[Speaker 3]
+It just goes to the database, provides the query and set and says, how are you going to execute this query and you get the execution plan back? Sometimes, it's also useful to produce the execution plan, but also execute the query. You can do that by using explain analyze. When we do explain, analyze the database would execute the query, return the execution plan.
+
+[Speaker 3]
+With some additional information, so you can see at the bottom. You can see at the bottom we have. Execution time, how long it actually took to execute our query? Okay, you can also see the planning time, how much time it took the database postgres in this case to come up with this execution plan, and it auto also contains, uh.
+
+[Speaker 3]
+A very interesting piece of information. Which is, how many rows did the database expect to get versus how many rows it actually got? Execute our query, so we are going to use explain analyze throughout this Workshop to explore and investigate how the database is actually executing our queries. Another useful way of viewing.
+
+[Speaker 3]
+The underlying SQL executed by dorm is to turn on the logger for the database backend. When you do that, the database dangum, sorry Django would print out all of the SQL that it executes in the database. So, let's start actually implementing something. Okay, so the first thing we want to implement is look up by key.
+
+[Speaker 3]
+Remember, every time someone heads a show to you already. We need to go to the database. We need to find the URL that we want to redirect to. And redirect to that URL. So we can start with a very, very simple. Function result. We get a. And we return the URL.
+
+[Speaker 3]
+Very simple. We can see that we just. I showed you another object get by key. If we find something, we return the URL. If we don't find anything, we turn none. Okay, now if we want to see what the database is actually executing, we have our SQL login turn on.
+
+[Speaker 3]
+And this is what the database is executing. We can run, explain on it. And see how the database is planning to execute this query. In this case, the database is going to use the index that we have on the key. Okay. So, let's pause for a second and talk about what this index is okay.
+
+[Speaker 3]
+Show of hands who's using Petri indexes? Right, who's using other types of indexes? Who's not sure? Fair enough. Fair enough. So let's talk about Petri index. This is the king of all the mixes. What you normally want to use, what you're using. If you're not sure what you're using, this is a B tree index.
+
+[Speaker 3]
+As the name suggests, it has a tree-like structure. You have the root node, which acts as a directory to the leaf box. What's interesting about the B3 index? Is that the leaf blocks? Store the actual indexed values and they are sorted from small to big so we can see that if we have these values one through nine, and you want to index them using a B3 index.
+
+[Speaker 3]
+All the values are stored in leaf blocks storeded from small to large, and then the root block acts like a directory into this Leaf box. So let's try to look for value 5 in our B tree, we start by scanning the root block from left drive. Scan the root like repeated from this, usually stored in memory, but we start from the root block.
+
+[Speaker 3]
+We work our way from left to, right? So, it's five less than three. No, going on to the next entry is five between three and seven. The answer is yes, we follow the link. We read the next Leaf blog, the middle one, and then we start scanning from left to right.
+
+[Speaker 3]
+We encounter four. This is not a match. Next value five. This is a match at this point. We can follow the link. To the lock in the table. Now, let me ask you a question. I scan through the B tree index, and I found the value 5. Which is what I was looking for.
+
+[Speaker 3]
+I followed the link I found a row. Should I keep going?
+
+[Speaker 3]
+Yes, no. Should I keep going? I see some nose, I see some, yes. Things dude that their answer to every programming question, it depends, depends on what. So, in our case. So, in our case, if this is a unique index, we don't need to look further because there's there can only be one at most one, but if it's not a unique index, there's situations where I need to keep looking.
+
+[Speaker 3]
+Okay, so? Let's go back to our query. Okay, we now know that the database is doing an index scan, and we know that we have the key we want the URL. Do we really need all the other fields? No, we don't do anything with them. We read them from the desk.
+
+[Speaker 3]
+We serialize them in Django. We do all this work, but we don't actually need any of these fields. So we can try and do a very small optimization. And since we know that we only need the URL instead of touching the entire object, reading all the data from the database and then instantiating the shows URL object in Django.
+
+[Speaker 3]
+We could just go and fraction. The URL we do that by using values list URL. This tells the database that we only want the URL. And we use flat true to just return the values that are, you know, Tuple? So, this is our new result function. Now, we get the kiwi fetch dust URL.
+
+[Speaker 3]
+If we don't find anything we return, none. We look at the query. And we can see that it looks. It looks more efficient, right, smaller. We fetch only what we actually need, just the URL. Now, if we produce an execution plan, we can see. That postgres is using our index, right?
+
+[Speaker 3]
+So, in this specific query. How many blocks do I need to read from disk in order
+
+[Speaker 1]
+To fulfill the square?
+
+[Speaker 3]
+First, I need to scan the root block. That's one right. Then, I need to read the leaf block. That's true, then I need to follow the link. To the table and do a hick fetch that is, read it block from the table, so that's three. So, to get the URL using an index, I need to read three blocks.
+
+[Speaker 3]
+Okay. Three blocks. Now, let's take a step back and think about it for a second. This query is executed a lot. This is basically the bread and butter of our application. This is what it does it. Take keys, resolves them to URLs. This is happening a lot. We already know.
+
+[Speaker 3]
+That we only need the URL from the table. We don't care about everything else just the URL. So, what if? Okay, what if? We can just include the URL right there in the leaf block next to the key. You get what I'm saying, right, mind blown. Take the URL instead of going to the table.
+
+[Speaker 3]
+Just put it right next to the key in the index. So, this is called an inclusive index. Also known as covering index and inclusive indexes allows us to store additional information in the leaf box. So in Django, if we want to include the URL in the leaf block of our unique index.
+
+[Speaker 3]
+We can add this include URL, and now we have an index on the key and in the lead blocks right next to the key. We also store the URL. If we create this index? And then we produce our execution plan. We can see that now slightly different. Can anybody spot the difference?
+
+[Speaker 3]
+This is a workshop you can talk. What's the difference?
+
+[Speaker 1]
+Only,
+
+[Speaker 3]
+Only previously we had an index scan. Now, we have an 8X only scan. An index only scan means that the database was able to fulfill our query, answer our query without accessing the database. So, how many? Blocks. Do we need to read now? Two Y2. Ruth, do I need to go to the table?
+
+[Speaker 3]
+No, I have the data right there. So quick recap about inclusive indexes. So, they are also known as covering indexes. So, if you want to look up information about inclusive indexes, this is also a term that's being used. They're useful when you need to. Uh, when you want to be able to answer queries without accessing.
+
+[Speaker 3]
+The table. It's mostly useful when you have very, very wide tables like data warehouse like tables where the road can be very, very wide, and you need a very small portion of. The columns in the table. Now, I speak with a lot of enthusiasm about this, but I'm actually not a big fan of inclusive indexes because they have a major disadvantage.
+
+[Speaker 3]
+What's the disadvantage of inclusive indexes? Gets very large. Why? We basically took the URL, and now we store it twice. Once in the table and another time in the index, this is very wasteful. This makes the index very big, and URLs can be very big, right? So I personally found.
+
+[Speaker 3]
+That. Good candidates. For inclusive indexes is when you have. Non-Unique composite indexes. Okay, when you have non-unique indexes on more than one field. And I'll explain why when you have Composites, you need access. They are usually there to enforce some kind of constraint, so we keep that. If you have a non-unique composite index?
+
+[Speaker 3]
+Then, this index must be for performance, right? So, in some situation, if the selectivity for the prefixed columns in the composite index is? Low enough? You might be able to. Uh, get away with an inclusive index instead of a composite index. I know this was a lot of big words, and if you want, you can get back to that at the end.
+
+[Speaker 3]
+Let's do another one. Okay, this time we have a fancy dashboard, and we want to find all the URLs by domain, right? I'm hockey. I'm using this service, and I want to find all the shows URLs that point to my domain. Arquevenida.com, right? This is what I want to do.
+
+[Speaker 3]
+So we can Implement this function. Find by domain simple function. We accept the domain and we return a query set, uh, show to our heads okay. To extract the domain part. From the URL. We use a regular expression. You can see the expression right there. Now, before before I move on to the actual implementation, I want to do a quick.
+
+[Speaker 3]
+Uh, side note. If you notice I'm using Alias? Anybody knows about Elias? Yeah, okay, so there's two ways to do it. One way is to use annotate. And one way is to use an alias. Anybody knows the difference between annotate and Elias?
+
+[Speaker 1]
+You want to answer? Yeah, LS.
+
+[Speaker 4]
+It will not be in the result of the query. It's only for filtering
+
+[Speaker 3]
+Exactly. So, Alias. Allows us to give a name to this expression, but it's not going to be included in the output. I can use it inside the query set, but it's not going to be included. If you see the actual queries? You'll see that on the left you have annotate and you see substring happening twice.
+
+[Speaker 3]
+On the right. Yeah, the right, one we're using Alias so we can filter on it, but it's not included in the output. Which one do we want, by the way?
+
+[Speaker 3]
+Which one do we want? Do we want Alias or annotate? We want to have. Yes, right? Because we don't need the domain, the output. We just want to search by it. So, we're using Alias. Okay. So? We want to. Find by domain, and we now have this nice query.
+
+[Speaker 3]
+We can produce an execution plan, and we can see that the database is now doing. A sequential scan. We don't have an index, so the database is just doing a sequential scan scanning through the table, reading each and every block Parts. The row applies the regular expression. Looks to see if it's a match and Returns the Rope.
+
+[Speaker 3]
+And we can also see that it takes about three seconds to scan through the entire table. And. Produce results for this query. So, once again, let's take a step back and think about what we know about this square here. First, we know that this is a very useful query our users ask for it.
+
+[Speaker 3]
+Otherwise, they wouldn't have done it, right? It's right there. In the dashboard, we want to use it. Now, every time. Every time. Someone looks or uses this query. I need to go over the entire table, right? And I need to evaluate this regular expression to extract the domain part.
+
+[Speaker 3]
+From the URL. Now, if you've worked with regular Expressions, you know that they can be very slow? So every time someone asks for this, I need to reevaluate this. Regular expression.
+
+[Speaker 1]
+So now!
+
+[Speaker 3]
+Bear with me. What if, okay? What if we could just index the result? Of this expression. What if we can index the result of this expression this way? Instead of having to recalculate this regular expression every time we try to access the table, we just have the results right there in the index.
+
+[Speaker 3]
+Okay, so this is what it looks like in Django. We create an index. And instead of providing a list of columns, we provide an expression. Now, we use the exact same expression. That we use in our query set. Okay.
+
+[Speaker 1]
+What second?
+
+[Speaker 1]
+Okay. So, we produce an execution plan.
+
+[Speaker 3]
+And we can see that the database is now using our index. You can see a bitmap index scan using show TRL domain fx, functional index function based
+
+[Speaker 1]
+Index.
+
+[Speaker 3]
+We can see that the query was significantly faster previously took around three seconds. Now, just 50 milliseconds, that's 60 times faster. And the reason it's so much faster is that. We don't need to reevaluate the expression again and again. We just have the results right there in the leaf block.
+
+[Speaker 3]
+The thing about function based indexes is? In order for the database to be able to use the function based index, you need to make sure that you use the exact same expression that you're used in the index. If some of you here think that the database is somehow smart enough to understand that two expressions are equivalent.
+
+[Speaker 3]
+Note that the database is not that smart. You need to use the exact same expression. In this example, I'm changing the expression very slightly, and we can see that the database is unable to use our. Function based index. So quick recap about function based indexes, so function based indexes allows us to index the result of an expression making it unnecessary to reevaluate this expression over and over again.
+
+[Speaker 3]
+Function based indexes also have the coolest acronym in the index World FBI. Remember that function based indexes? So? Uh, and function-based index is very useful for optimizing queries. But once again, I present function based indexes, and there are lots of valid use cases. Forward function based indexes, but once again, I'm not a fan.
+
+[Speaker 3]
+And I will tell you why, if I presented you with this problem? Would you solve it like this? No right, what could you have done? You would just add a field right. You would just add a domain field and when someone creates Show URL, you would extract the domain ones you put it in the field, and that's it.
+
+[Speaker 3]
+In recent versions of postgres, you can have even have a generated column, which automatically populates the field for you. Right. So why bother with a function based index? So I actually ask this question once, and I got a very interesting. Uh, response. A lot of the features. That we see in databases are.
+
+[Speaker 3]
+Very old. They go way back. And way back in the day. People used to host closed Source application software on their servers. You would be a big Enterprise. You would purchase an oracle license you put it on your rack. In your basement, you had all these I.T people right, and you bought the software you hosted yourself, and then at some point a DBA would notice that the application is making a lot of queries using some expression, and it's scanning the entire table.
+
+[Speaker 3]
+Now, this it die, you can. He can change the software. This is closed Source. So, these types of features allows him. Or her to optimize without touching the code. Okay?
+
+[Speaker 3]
+If you're interested, there are several. Uh, useful use cases for function based index. Uh, which are not the one I just showed, and you can check them out here. Okay. It's banned stuff. You should check it out. So? Let's do another one another use case this time. We want to find.
+
+[Speaker 3]
+All the unused keys. These are all the shorty oils. That no one ever used where hits are zero, okay? So, we have this function find unused Keys. Very simple. We return a query set of show to RNs and we. So, like all the objects where hits equals zero. We look at the query.
+
+[Speaker 3]
+So X star of Saudi Arab, where is equal zero? Reproduce an execution plan. What is the database doing?
+
+[Speaker 3]
+That's right. Sequential scan on the entire table, I promise You. By the end of this Workshop, you're going to come back. You're going to run explain, and they're actually going to make sense to you. So, the database is scanning the entire table looking for rows where hits equal zero, right?
+
+[Speaker 3]
+So you can do that. It takes like 100 milliseconds at some points. A PM would come to you and say, dude, that's super slow. Can you fix that? I can spare 100 milliseconds. I need to be super fast, and you say, sure, man, no problem. And what you do, you slap a victory on it.
+
+[Speaker 3]
+You just go to the field and you say, DB, index, true. You apply the migration. You now have an index on it, right? The PM goes through. The dashboard runs the query. And. Very fast, right? Very fast. So are we done? Where using the index we're done? Yeah, yeah, not for you because you're going to have so many different kids, so your index will be, what is it gonna be?
+
+[Speaker 3]
+Way big, right? In the end, yeah?
+
+[Speaker 1]
+You kind of spoiled my thing here, but okay.
+
+[Speaker 1]
+And never mind. It's a leading question. Okay.
+
+[Speaker 3]
+So, let's let's talk about performance. So far, we, we put a lot of effort into making things run faster, but in fact. If we want to talk about performance in a broader sense, then it's not just making things go very fast. We need to balance different type of resources.
+
+[Speaker 3]
+For example, if you have a batch job running at night, it takes 10 minutes, and it's just running every night when the system is mostly idle. That's fine, right? You wouldn't, for example, try to optimize it. To running just. I don't know two seconds and have it consume lots of CPU or memory.
+
+[Speaker 3]
+Which might cause you cost you money. You say that's fine. I'm trying to optimize. For cost of this in this case, or if you have a task running during the day in the background that consumes lots of CPU. Hurts other concurrent sessions in your database, then you might say I'm willing to have it run for a bit longer, but I don't want to consume as much CPU, so you need to optimize for different things.
+
+[Speaker 3]
+So the resources that we normally consider our CPU memory? Desk space, right? And this all translates to cost, because if I need a process that consumes lots of disk space, then I need to pay for it. If I have my server set to Auto scaling and I have a very heavy.
+
+[Speaker 3]
+Task that consumes lots of extra memory I'm paying for it. That's bad, right?
+
+[Speaker 3]
+So, let's look at the size. Of our index. We use slash di imposed by bi plus. And we do a wild card search. And we see that our index is. Seven megabytes. Okay, seven megabytes. Now! As you already said. Our our index includes. All the roads in the table, right.
+
+[Speaker 3]
+All the rows in the table, all heads. But. We don't actually care. About all hits. Nobody asked us how many show tours do you have with more than a thousand or less than five or between 30 and 70. They just said we want to find unused indexes where hits equal zero.
+
+[Speaker 3]
+So, what if? Okay, once again. What if? We can just index a portion of the table. The part of the table that we actually care about instead of indexing everything. We just index this small portion that we care about. This is where. A type of B3 index that I actually like, okay, becomes useful.
+
+[Speaker 3]
+This is called partial indexes, and it allows us to index just a part of the table. So, first thing we need to ditch this DB index. True, we do not want the full index. Instead, we want to create a partial index. So, we create an index on the ID field and notice that we add the condition you see.
+
+[Speaker 3]
+This condition Q hits equals zero. If you look at the actual SQL? That is generated by the migration. You'll see that we are creating an index on hints and notice the where Clause at the end. You see, we are indexing heads. Where hits equal zero. Okay. This makes it impartial index.
+
+[Speaker 3]
+Now, if we execute our? Function again and producing the execution plan.
+
+[Speaker 1]
+We can see that the database is using a partial index.
+
+[Speaker 3]
+Right, and we can also see that. The execution is very fast. Faster than when we started and even faster than the the small index, the the full index. But that's not. If we go back to the database and we look at the actual size of the index, we see that the index now is significantly.
+
+[Speaker 3]
+Smaller. Previously, the full index was seven megabytes. This one is just 88 kilobytes. Now, at this point, people usually tell me dude. Come on! It's like six megabytes here take like 50 cents. Go buy some storage, right? But the thing is, this is just a demo. So naturally, everything is much smaller.
+
+[Speaker 3]
+If you go back to your databases and check the sizes of the B3 indexes. You'll find that they can get very, very, very big and big indexes, cost more money, cost more maintenance. They are harder to move around, interact with so partial index can definitely be useful in situations like this.
+
+[Speaker 3]
+Yeah.
+
+[Speaker 4]
+More than one. You mean less than one? I would guess, uh, no, but check me on that. Really, exactly,
+
+[Speaker 3]
+I think. So, yeah, I don't think it's smart enough to evaluate this expression, but you know, what? Maybe it is. I wouldn't do it unless I really have to. What? What's the impact of rice?
+
+[Speaker 3]
+Yeah.
+
+[Speaker 1]
+Well, once it's, it's been other than likely because in this case, like if we've hidden floods, it's never going to go back into Earth.
+
+[Speaker 3]
+Oh, that's pretty Advanced. I don't know if you can communicate back to the database. So, first of all, the first part of the question do the? Is the database need to evaluate this exposition whenever it adds a new row to the table? The answer is yes, because it needs to figure out if it needs to go into the index or not.
+
+[Speaker 3]
+When you update a row. This is essentially deleted insert, so this expression is going to be reevaluated and depending on the result might delete the row from the index. Now whether I can add, you know, special conditions to, uh, let the database know that once it's out, never back in?
+
+[Speaker 3]
+I don't think so. I don't think you can even express that as a constraint. But interesting question. So partial indexes. Super cool, super useful, use them whenever possible seriously. Um. Good candidates that I found, especially in a in Django. Is? When you have a nullable?
+
+[Speaker 3]
+With an index on it. Usually, you don't want the nose to be included in the index. But in postgres, they are. So, if you have normal columns, notable Fields. With an index on them. You might benefit from. A partial index. In Jacob, specifically. Every time you use a foreign key, Django would create a P3 for you implicitly.
+
+[Speaker 3]
+Even if you don't say anything? It will go and create an index for you. So, if you have a nullable foreign key? And you didn't set DB index to false. Then you have a full index on this column. What you normally want to do in this case? Assuming that you don't care about nulls is you want to set DB index to false and create a partial index on the foreign key?
+
+[Speaker 3]
+Okay, we actually managed to save a lot of storage this way by simply identifying columns, which were notable and had indexes on them. Okay. Okay. Now, let's do that question. So far, by the way. Yeah,
+
+[Speaker 1]
+Um, it probably will have prevent some tree balancing. Because. Like, if if you still think it's every time you increment, you might have to rebalance the tree. Yeah, but first of all, it depends on what I'm index. In this case, I index the ID. So, I expect good correlation, and uh and yeah, the index is smaller because it contains just a small portion of.
+
+[Speaker 1]
+The the. Small portion of the table, so naturally, it would be easier to maintain. Yeah. Can we hope that it's similar performance? By doing what you just said. So, for example, instead of zero, I scroll down for case. And I only invest the one that fits for some reason, but not this is.
+
+[Speaker 1]
+Would I be able to view that the user index? So, if I say that, I only want no values. The question is, if I have a partial index, I'm not null.
+
+[Speaker 3]
+And I have a query that looks for everything. That's not no, that is no, like, the negate the opposite. I want to hope that, yes. But I think that, no,
+
+[Speaker 1]
+It was like the f****** increase the same expression.
+
+[Speaker 3]
+Yeah, this is, by the way, a big Challenge. And, uh, the article, I showed you before tries to. Um, address this challenge by using generated columns. To eliminate situations where you have. Different small differences in the expression that causes the database to not being able to use the index.
+
+[Speaker 3]
+I wanted to ask about the index in July because I did not buy the point obviously because. Well, uh. You can't index bullion. I have to say that, so there is.
+
+[Speaker 1]
+I'll tell you what I have an example at the end using a haystack. You're going to like this analogy, and if it doesn't answer your question, then ask again. Okay.
+
+[Speaker 3]
+So, next scenario we want to do a reverse lookup reverse lookup is we want to find the URL. We want to find the keys by the URL. Previously, we wanted to resolve. We wanted to take the key, find the URL to redirect you. Now, we want to do the opposite.
+
+[Speaker 3]
+We have a URL we want to find all the keys. For example, I launched this promotion for, uh, some landing page on my website. I created different show URLs for different platforms, one for SMS campaign, one for email, one for social, and now I want to find all the sold URLs pointing to this.
+
+[Speaker 3]
+So, this is what the function looks like. So, TRN. Uh, objects filtered by URL very simple. Nothing complicated. We can. See what the database is doing behind the scenes. Basically, select star from shelf URL where URL equals something. Once again, we go through the motions we produce an execution plan.
+
+[Speaker 3]
+What is the database doing? Full table skin. No index, right? Pool table stand, no index, and we can see that the timing is roughly 100 milliseconds, so someone complains, dude, that's super slow. Can you make it faster? So, what do you do? You're slapping Petri on it, right? And you go for lunch.
+
+[Speaker 3]
+So you go. You add no problem that can fix this for you. You go, you add an index on the URL, right. You generate migrations, advise them everything. You tell them come, come. Let me show you something. You produce the execution plan again. What do we see? It's fast, and the index is used.
+
+[Speaker 3]
+We're going down from 100 milliseconds down to less than almost a tenth of a mini. Second, that's a pretty big Improvement. I think we earned our lunch, right? So? Let's once again look at the size of our index, so our index on the URL? Is 47 megabytes. Okay, that's, uh, that's big.
+
+[Speaker 3]
+That's the biggest we've seen so far, right? It's actually almost half the size. Of the table. By the way, why is it so big? The URL is big, and what does a beach we do? Stores devaluing the leaf blob, right? So, we just indexed the URL very big, stored twice.
+
+[Speaker 3]
+We talked about the previous day when we talked about inclusive indexes. Now, we have an actual index on it very big. So, what do we know about? Urls in our case. First of all, we know that. I'm like, he the URL is not unique. Okay, we can have multiple structures pointing to the same UI.
+
+[Speaker 3]
+However. When we look at the data, we see that there are very few duplicates just because the nature of the data is. Even if I have multiple shot to your hands for the same landing page, I most likely have UTM parameters and stuff like that, so URLs usually won't be exactly the same, so I don't have a lot of duplicates, so it's not unique, but it's almost unique, so I have very few duplicate values.
+
+[Speaker 3]
+So now! I want to present to you. Okay, I want to present you an Innovative new type of index. I call it the ugly duckling of indexes. This is like what you would do if I asked you to implement an index yet. Nobody does it okay. And of course, I'm talking about.
+
+[Speaker 3]
+Hash index. Makes perfect sense yet. Nobody uses it, so let's talk about a hashtag. Let's start by understanding our hash index works. So, to understand how the index works. Let's build one. Okay, so we have these values a, b, c, and d and we want to build the hash index on it.
+
+[Speaker 3]
+So, the first thing that we do is we apply a hash function on the value, and we get the hash value. You can see that postcracks. Has these hash values for different types you have hash for text Char arrays, even for Json and timestamps? So, now we have our hash values, and now we need to divide them into buckets.
+
+[Speaker 3]
+So, in this case. We want to divide into two buckets, so essentially we do modular two, and we can see that a goes into bucket one. B, c, and d goes to bucket zero, right? Because this one is odd. Six, eight, and zero are even so. We have two buckets, and this is our hash index.
+
+[Speaker 3]
+Amazing, right, let's try to use this hash index to find something in the table. Let's use this index to try and find the value B. So, we go through the same process. We apply a hash function on B. We get the hash value from the hash value. We identify the bucket in this case zero, so we go to the index.
+
+[Speaker 3]
+When we start reading the values in bucket B, and now I found? A value with a matching hash value. So, now I can go to the table at position two. Read from the table. And use my. Result now. Question? If I go to the table? Position. Am I necessarily going to find a row?
+
+[Speaker 3]
+With the value B.
+
+[Speaker 3]
+I'll ask again, I'll ask again. I found imagine hash value in my hash index. It points to block number two in the table. I go to block number two in the table. I read the row. Am I necessarily going to find the value B? No, why not? Collision. We can have multiple values with the same hash value, so we are not necessarily going to find the value.
+
+[Speaker 3]
+But we might okay.
+
+[Speaker 3]
+So, let's go back to our model. Remove this V3 index and use a hash index instead. Okay, notice that hash index is a postgres specific. Type of index, so we need to import that from Janko contract postgres indexes. And we divide the hash index on the URL. Personally, I like to use suffix for index names that indicates the type.
+
+[Speaker 3]
+So I use h i x. This is not RT index. This is hash index. Okay. So, we generate the migration. We create the index. We produce an execution plan. And we can see that postgres. Use our hash index. And another thing that we can see. Is that the index, the the query was actually?
+
+[Speaker 3]
+Faster than the B3. So, the hash of this gigs was faster than a B tree. But that's not all. If we looked at the actual size of the index? We can see that the patreon the URL is 47 megabytes and the hash. Is just 32. So, in our case.
+
+[Speaker 3]
+In our case. The hash index is smaller. And faster. Than a B3 index. So I did an experiment.
+
+[Speaker 3]
+I'm going to show you a scary chart. We're going to work through it. Don't worry. So I did an experiment. Okay, and this is what I did. We have the key. Which is a short, unique text, and we have the URL non-unique very big, right? That I created a v3 index and a hash index on each of them.
+
+[Speaker 3]
+So, four indexes okay? Then, I started inserting rows into the table. This is what you see this access below. That's, I'm starting to insert row into the table now. While I was inserting the rose, I took snapshots. Of the size. Of inch index. Okay. So, let's see some interesting things.
+
+[Speaker 3]
+First of all, if we look at the green and the red one. These are our B3 indexes. The first thing that you see is? The index grows linearly as I add more rows to the table to the index. The side of the index grows. They know that makes perfect sense.
+
+[Speaker 3]
+Another thing that you can see is that? The size of the B3 on the URL is constantly bigger than the B3 on the key. Why is that? Yeah, you are is bigger. In other words, we Now understand that the Petri index the size of the Petri index is affected by the size.
+
+[Speaker 3]
+Of the values in the index, because the values actually stored in the leaf blocks. So, if I index big values, I'm going to get a big index. Now, if we point our attention to the hash index, these are the two joint lines. Here they are yellow and the blue one.
+
+[Speaker 3]
+The first thing that we see is. As we add more rows to the table, the size of the hash index on the key and on the URL is the same. Why is that? Exactly hash index! Does not store the actual values it stores hash values, and the hash values are the same size.
+
+[Speaker 3]
+So, in other words, we learned that hash index, unlike B tree, is not affected by the size of the index values, so I can index a huge piece of text. And I'm going to pay the same as if it were just a single digit. Okay. There's another interesting thing that goes on.
+
+[Speaker 3]
+We saw that the B trees grown glenily. But we see that the hash index has like this bumps like these steps. You see these steps like? Step step what is these steps? What are these steps? What are these texts? New data. Okay. New Rose or white steps, white bumps.
+
+[Speaker 3]
+Okay, tell us the answer is the buckets. It's the buckets. Okay, so a hash index allocate space for buckets when the buckets when the bucket fills, we need to do a bucket split when we split a bucket. We allocate size the same size of the existing bucket. And then we can start into roads until this bucket fills up.
+
+[Speaker 3]
+And then we have another split. This is why you see the hash index rosing bumps. Every bump is a bucket split. Okay.
+
+[Speaker 3]
+So? First time in the one before last. The worker device separate.
+
+[Speaker 1]
+So the nice effort that we're getting these are different values, so it makes sense that maybe, why is it? Yeah, you can see this here as well. I'm guessing lots of split small splits?
+
+[Speaker 3]
+My guess, I I, this is my educated guest. So, hash index is ideal when we have very few duplicates. Why is that? Can I use a hash index that just makes sense to use a hash index on rows that have lots of duplicates? If I have a lot of values which repeats themselves, it makes sense to do the hash index.
+
+[Speaker 1]
+No, why
+
+[Speaker 3]
+Not?
+
+[Speaker 3]
+We also saw that, unlike a B tree index hash index is not affected by the size of the index values. We also saw that it can be smaller and faster than a beach index under some circumstances. And the reason I called it. The ugly duckling of index types in postgres is that if you go to postgres documentation prior to version 10, and you go to the page for hash index.
+
+[Speaker 3]
+You'll see this huge warning, saying, you do not use this. This is not production ready. So, a lot of people got used. To the idea. That hash index is not production ready. But starting a postgres 10, it is ready, and it's very, very useful. Okay.
+
+[Speaker 1]
+So,
+
+[Speaker 3]
+Hash index has a few limitations. First of all, you can create a unique hash index. You can create a unique hash index.
+
+[Speaker 1]
+And you
+
+[Speaker 3]
+Can create a composite hash index, that is, you can create a hash index on more than one field. You also can the database can't use hash index for sorting, and it can use a hash index for range scans. Like between, why is that? Exactly! It doesn't store the values, so it's useless in these cases.
+
+[Speaker 3]
+There is, however. One trick that you can do. I said that you can create a unique hash index. That's not possible. If you try to do that, you get an arrow, however.
+
+[Speaker 1]
+And this? Very cool.
+
+[Speaker 3]
+You can still enforce. Uniqueness. Using a hash index. So?
+
+[Speaker 3]
+This is actually my contribution to Django 6.1. The ability to create exclusive constraints with hatch? So Shameless plug, that's me. Okay, so if you want to enforce uniqueness with a hash, you can actually use an exclusion constraint. And I think that it's easier to look at the SQL, so an exclusion can string okay is basically every time you insert a row into the table.
+
+[Speaker 3]
+It evaluates this expression URL with equals, and if it matches. There's a constraint violation. So, basically, what I'm saying with this exclusion constraint is. If someone tries to add a rope and you find a matching row with the same URL? Throw an exception, so essentially, I'm enforcing uniqueness with an exclusion constraint.
+
+[Speaker 3]
+Now, I can instruct this exclusion constraint to enforce the constraint using a hash, which means I essentially enforce uniqueness. With a hash. Did I make too many hops, or was it fine? Did you get the point? I can enforce uniqueness using a hash. This is not a unique constraint, but I still achieve uniqueness.
+
+[Speaker 3]
+This is what the constraint looks like. You need cash exclude using hash. And. If I try to add a URL that already exists? I can see that I get a excluding constraint violation, so essentially I enforce uniqueness with a hash. Of the value.
+
+[Speaker 1]
+It uses the hash index to enforce the constraint, but it's. Enforcing it for the actual value. By the way, I can, uh. Use the same approach to enforce uniqueness with other types of indexes, which are not glossy. And as an added bonus. I have an ounce index. That is enforcing this constraint, so I can also use it.
+
+[Speaker 1]
+For queries. Okay, like the one we just did.
+
+[Speaker 3]
+How much time do we have? Half an hour.
+
+[Speaker 3]
+Yeah, we're not going to make it all the way to the end.
+
+[Speaker 3]
+I have like 240 slides. Okay, now let's do. Another scenario. Let's do a range scan. Okay, let's do a reins here. Basically, we want to answer the question. Give me all the URLs that were created in this time period. So, this is what the query looks like. We want to find all the show URLs created in February of 2020.
+
+[Speaker 3]
+Okay, now we have some assumptions here. The first assumption is that when we had the short URL, the data is set by the application, so naturally, as we add more shown URLs into the table. The date is incrementing. In other words, we have good correlation. If we look at the first row, we'll see the minimum date we look at the last row, we'll see the maximum date.
+
+[Speaker 3]
+This is called correlation, close to one meaning, perfect correlation. There's perfect correlation between the actual position of the row on disc to its logical value. So it's like one, two, three, four, five, six, seven, eight, okay, good correlation. So? Start the same process. We execute the query. We see a sequential scan.
+
+[Speaker 3]
+Right, takes 19 milliseconds full table scan. What do you do? During super slow, make it fast. You slap a B tree on it, right? So we slap a B tree on it. We execute the query again. We can see that the index is used. Query is faster, right?
+
+[Speaker 3]
+We take the size. The B2 is around two megabytes. We put it in the table.
+
+[Speaker 3]
+Are we done?
+
+[Speaker 3]
+Of course not. There's always more. So, now I want to introduce to you another index that I'm very fond of, which is not used very extensively in that block range, index, or bread. Anybody here uses brain?
+
+[Speaker 3]
+Yeah, some sort of okay. So, let's build a block range index together, so we understand how it actually works. So, a brain? Works on adjacent ranges of pages. Pages is a block that contains rows. Okay, so let's imagine that we have a single row in the table block, and this is our table.
+
+[Speaker 3]
+This is how it's organized on disk, the first block one, two, three, four, five, six, seven, eight, nine. Okay, so the first step? For a brain is to divide the table into ranges of adjacent blocks. Basically, you take three blocks, three blocks, three blocks. And then, for each range.
+
+[Speaker 3]
+We keep. The minimum volume and the maximum value. This is it. This is a brick. Now, let's use our print index. And try to find something in the table. So, let's say we want to use our brand to search for the value 5. So, we looked at the first range.
+
+[Speaker 3]
+One through three is five in this range. No right, so no point in looking. I can eliminate blocks one, two, and three. What about the second range, four, through six? Might be here. Is there any guarantees that I'm going to find five in this range? No, it might be there.
+
+[Speaker 3]
+It's not necessarily there. And seven through nine, definitely not there. So using our brain index. We were able to minimize our research in the table to blocks four, five, and six. So?
+
+[Speaker 3]
+So, let's create a print index. On our created at column. This is what it looks like, Brim. I forgot the import, but brain is also postgrad specific, so you need to import that from postgres contrib.
+
+[Speaker 1]
+Um, something something indexes okay?
+
+[Speaker 3]
+Now! This is what the actual SQL looks like create index using brain Creator that, and we are going to talk about Pages branch in a sec. Now, we execute our query, produce an execution plan, and we can see.
+
+[Speaker 3]
+The database is using our index. It's not doing an index scan. It's doing
+
+[Speaker 5]
+A bit matter guys here, which is fine, but
+
+[Speaker 3]
+Instead using our index, and we can see that the execution time is low, but it's higher than the B3. The B3 was very fast. This one is faster than pool table scam, but slower than a B tree, but that's not all. If we check the size of the index?
+
+[Speaker 3]
+If we check the size of the brim? It's ridiculously small, just 64 kilobytes, compared to more than two megabytes for the B tree. So now! For the first time. Since we started this Workshop, you actually need to make a compromise. You actually need to decide.
+
+[Speaker 3]
+You want to pay?
+
+[Speaker 3]
+Two megabytes. For three milliseconds. Right? Because when we started full table, scan was 19 milliseconds right now. If we take 64 kilobytes for the brand, we can reduce the time to five milliseconds. If we want to improve five to two milliseconds just three milliseconds, we need to pay two megabytes.
+
+[Speaker 3]
+So, that's a lot. Now, once again, we're talking about, you know, kilobytes, and megabytes, but you go to your systems? That's gigabytes, okay? So, in this case, a B tree is faster. Brim is smaller. Now, let me ask you a question. What? We index the same values, but this time they have very poor correlation.
+
+[Speaker 3]
+Meaning, it's not a nice one, two, three, four, five. Everything is nicely sorted in the table. What if we take the exact same values and we Shuffle that? So, we do the same thing. We take ranges of three adjacent pages. We keep the minimum the maximum, and now we try to look for the value five.
+
+[Speaker 3]
+And in this case, for the same exact values. The index is completely worthless.
+
+[Speaker 1]
+Okay.
+
+[Speaker 3]
+So, if we have poor correlation? A brain is useless. What if we increase? The number of adjacent pages from three? To five.
+
+[Speaker 1]
+Exactly what we get. We get a smaller index.
+
+[Speaker 3]
+Previously, we had three entries. Now, we have just two, but what did we compromise accuracy? Right, because now, instead of minimizing our search just with three slots, we minimize our search to five blocks so smaller, less accurate. And if we reduce the pages per range instead of three, we do two.
+
+[Speaker 3]
+We get a slightly bigger index. But more accurate. Now, we can minimize the search just to two blocks.
+
+[Speaker 1]
+So you can actually control this parameter.
+
+[Speaker 3]
+It's called pages per inch. The default is 128, and the minimum is 2. I personally strongly recommend that you start very, very low, because I think that when you get back to your systems, you'll notice that the additional storage. From the Low Pages range. Okay compensates for the accuracy you want, the accuracy more than you want.
+
+[Speaker 3]
+The extra megabytes for the brain brain is very small. So? Brynn idea when data has good correlation. If our data doesn't have good correlation, the brain is basically useless. Brain is also ideal for tables that don't update frequently, because by default, it only updates on vacuum. So, Brenton is more suited for data warehouse DSS systems where you have batch processing.
+
+[Speaker 3]
+You throw data during the night or a few times during the day. You can. Rebuilt your indexes. And remember to adjust Pages frames to find the ideal size.
+
+[Speaker 3]
+What I presented to you is the default op for brand min max. For each range, we keep the minimum and the maximum, but brain actually comes with other operators that you can use. So, mimax, that's the default. You also have min max multi, so instead of just keeping one minimum maximum for each range.
+
+[Speaker 3]
+So?
+
+[Speaker 3]
+So, I imagine you have a table like one, two, three, four, five, the million, six, seven, eight, nine minus thousand, these outliers. Okay, they cause. The ranges to distort. Right, which makes the brain index not ideal. So, what the dear people of postgres did is they allow to use min max multi, which keeps multiple ranges.
+
+[Speaker 3]
+Multiple min max values for each range personally in a real production system. I strongly suggest that you use Min Max multi way more resilient to outliers, and we all have outliers. There's also a loom. You can actually create a bloom filter on each range. And, uh, this actually makes brain useful.
+
+[Speaker 3]
+For data with very low correlation, you can actually index your uids random uids with print using a blue map. Bloom bloom with a special data structure that can quickly answer the question is this value definitely not in this range? Okay. So, bring index. Uh, there's a lot to read.
+
+[Speaker 3]
+I trust that you'll do it. Let's talk a little bit about some common misconceptions regarding indexes. Okay. Um. Okay. So, first of all. Indexes are not free. Indexes consumed space. We saw that B trees can be very, very big, and also. Indexes requires maintenance. So, every time I insert, delete, or update, the database needs to maintain the index as well.
+
+[Speaker 3]
+So, let's do a little experiment. I create this table T I have five columns. And I'm now inserting a lot of rows into the table. Imagine this is like a batch processing job when you load a bunch of data into your database, right? So? This took 118 milliseconds. Okay, remember this number now.
+
+[Speaker 3]
+I go and do this again. Okay, only this time. I create an index on every column. After I created index, and I recall them. I load the exact same number of rows with the exact same values, and it's now seven times slower. Okay. Why is it slower because it needs to maintain the indexes as well as a general rule of thumb?
+
+[Speaker 3]
+If you are loading a bunch of data into a table. It's better to load the data further and then create the indexes. Okay.
+
+[Speaker 3]
+Let's look at another misconception. And I worked very hard on this analogy, and I hope this will answer your question. Okay. So, let's. Let's create a table for, uh, Haystack. Everybody knows what a haystack is. Hopefully, okay, and now we put a lot of hay into our Haystack and just one needle.
+
+[Speaker 3]
+Juanito in our Haystack. And we create an index. Okay. Now! If we want to find a needle in a haystack? We have just one. It makes sense to use the index, right? I use the index to identify the signal leader that I have in my Haystack and I go and fetch it.
+
+[Speaker 3]
+If I'm looking for hay in a haystack, that didn't make sense to use the index. No right, because I'm going to read 99 of the table, so I bother with the index. Just read through the entire table, right? So, postgres is actually smart enough. To figure this out, postgres maintains the test takes on our data, and he knows that there's a lot of hey, in a staff.
+
+[Speaker 3]
+So, don't bother with the index. So, at this point. People usually ask me okay. The.
+
+[Speaker 3]
+The thing to remember here is if you're looking for a needle, Haystack makes sense to use the index. If you're looking for hidden Haystack, it does not. Okay, so regarding your question about the bullion. If you have a table that has a column that can only have two values.
+
+[Speaker 3]
+Then, if you're scanning for 50 of the table, it might not make sense to you in that. So, when I see indexes columns like that, I ask myself. Doesn't make sense. On the other hand, if you only if you have lots of false and just a few trues, and you want to carry the partial index on the true that might make sense.
+
+[Speaker 3]
+So, indexes may query faster. They make inserts and updates lower.
+
+[Speaker 1]
+They can take a lot of disk space. We saw that.
+
+[Speaker 3]
+And indexes are not always the best option sometimes. You just need to scan the table. It's fine. Uh. Okay, well, this. This is all the stuff that we talked about. We talked about different types of indexes and features. It seems like 10 hours ago, but it was just 90 minutes ago when we talked about.
+
+[Speaker 3]
+Inclusive, covering partial right function based indexes. When we did the scenarios in our short URL, we talked about a hash index. Hopefully, I made it look a bit more attractive than it used to be. And we talked about brim. We also talked a little bit about performance. I don't know if you noticed, but we had a pretty good process that we took to evaluate.
+
+[Speaker 3]
+We started with. Uh, just producing an execution plan. Taking note of the time on sizes of things. Then, as we evaluate a different indexing techniques, we created a B3. We checked the size. We took the timing. We looked at the execution plan. We put everything in the table and then we can make a decision.
+
+[Speaker 3]
+We even had to make some compromises if you recall. When we talked about the Britain. And, uh. That's it. I think I have another section about concurrency, but I don't think we're going to make it in like 10 minutes so, uh? That's it. Thank you, anyone, what question? Oh yeah.
+
+[Speaker 1]
+I assume you that the benchmarks using a solid state disks and not spinning discs? And, uh, if you video also try with spelling desks?
+
+[Speaker 3]
+With, so I'm with spinning discs old, hot, old, hard drives. Oh,
+
+[Speaker 1]
+I
+
+[Speaker 3]
+Assumed all those benchmarks have been done with, uh, ssds. Yeah, my benchmarks are on this Beast, and that's SSD. Yeah. But regarding your question. By the way, there are different weight parameters you can tune depending on your disks. So, if you have past disks like SSD, you might want to make.
+
+[Speaker 3]
+Um, you know, the cost of reading from this cheaper if you have fast disks? Yeah, questions you don't have to. It's fine.
+
+[Speaker 6]
+Uh, so during the cash index section, you you have highlighted the hash functions that are used, uh, are they like hard coded into passwords? Suppose determines which function is used based on the data type. I'm like, is there any way to influence that if I want to use something other than like those perfect hash functions?
+
+[Speaker 6]
+Is there any way to like, customize it?
+
+[Speaker 3]
+So, uh, when you create a hash index, you don't really need to worry about. Um, the hash function postgres is doing that for you. If you wanted to? Provide a custom hush function. I never done it, but I guess you can create a type. And you can provide a hush function for this title.
+
+[Speaker 3]
+This is just an educated guess I never had to, uh. Actually do something like that.
+
+[Speaker 5]
+Um, I had a question about, you know, you might ask questions.
+
+[Speaker 3]
+Yeah, um,
+
+[Speaker 6]
+So you know you had a dysfunction based, um? Uh, indexes where index, the result of the function.
+
+[Speaker 7]
+What happened when the new rows getting selected?
+
+[Speaker 6]
+It does start recalculate every time the new rows get execute, like, inserted. Okay, so the question is in
+
+[Speaker 3]
+A function based index? Do I have to recalculate or rear value and all the Expressions every time I add a row? Um, no, I don't see a reason why you would have to do that you, uh. Evaluate the expression on the new row and you index the result. Okay, anyone?
+
+[Speaker 3]
+I
+
+[Speaker 6]
+Don't know if I want to take your question. Man, you haven't. You have all the answers all right. So, a coming from the art star tree type of index three years related espacito special stuff? Related, eh, does it make the same sense, asking enough start index to have a brain index that has a huge range, then inside it.
+
+[Speaker 6]
+Another bringing index that's small that makes the plane smaller and go on and go on since it is very small in the disc until you pinpoint the. And the final range, and essentially getting the advantage of slightly more space, but a lot more currency and speed.
+
+[Speaker 7]
+Like in our state in our star index in a sense so.
+
+[Speaker 6]
+No, so if I understand correctly.
+
+[Speaker 3]
+Uh, instead of thinking about it like a brain inside a brain. You can say, I want to implement my on my own up. To index. The ranges, the values inside each range in a way that would be optimized for special queries. First of all, it's, it's possible that it already exists.
+
+[Speaker 3]
+I think that there's, uh, some kind of a. I'm not mistaking. I need to check, but I think there's a box operator, which is. Makes Sprint suitable for what she said. Uh, but I think that you should be able to implement your on your own op for brim and do what you just said.
+
+[Speaker 3]
+I don't know who's going to be exactly like a brain inside a brain, but you can do something probably like that. Thank you okay! Anymore.
+
+[Speaker 6]
+Um, another aspect of having smaller indexes that I can think of. Is the?
+
+[Speaker 8]
+Um, the index staying in memory for? Queries because it's less likely to be evicted. Um, but that's difficult to show the Benchmark. Have you noticed something in production where? By switching to a smaller index, you get a performance impact. Well,
+
+[Speaker 3]
+When you do smaller and more specialized type of index is, the database naturally needs to scan less
+
+[Speaker 8]
+Rows to satisfy the query.
+
+[Speaker 3]
+Making it? Faster, I guess. Um. It is difficult to show during The Benchmark. This is where we need to exercise, uh, common sense and logic to answer questions rather than try to prove it. But, yeah, also remember that smaller indexes are easier to maintain. So, if you want to make changes, for example, drop, create the index, it it's, uh, easier when the index is small.
+
+[Speaker 3]
+It's very big. It can be challenging to manage. Hope this answers your questions, even a little bit. Anyone? Okay.
+
+[Speaker 7]
+Ah,
+
+[Speaker 3]
+Thank you my question about CPU. It was one of it was on one of your slides. So, my question is?
+
+[Speaker 6]
+Do indexes of an improve the performance on the CPU, or it depends because we'll have from more rights. Yeah, so, uh? When you use an index naturally, the database would have to use some CPU. In our case.
+
+[Speaker 3]
+We managed to save CPU by not forcing the database to reevaluated the regular expression every time. So, uh? Even if you know, scanning through the index requires a bit more CPU than just going through the table. We eliminated a big chunk of work, which is reevaluating the regular expression.
+
+[Speaker 3]
+So,
+
+[Speaker 6]
+This is how
+
+[Speaker 3]
+We tackle the CPU angle in this specific case. Thanks! Anyone? Okay, thank you. Thank you.

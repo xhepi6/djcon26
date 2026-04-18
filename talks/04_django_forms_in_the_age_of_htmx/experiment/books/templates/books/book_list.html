@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<h2>Book list</h2>
+<p class="subtle">Each field has its own Edit button. Clicking it <code>hx-get</code>s a
+fragment with a one-field <code>&lt;form&gt;</code>, which replaces the current value.
+Saving POSTs just that field and swaps the value back.</p>
+
+{% for row in rows %}
+    <article class="book">
+        <h2>{{ row.book.title }} <span class="subtle">#{{ row.book.id }}</span></h2>
+        <dl class="fields">
+            {% for f in row.fields %}
+                <dt>{{ f.label }}</dt>
+                <dd>
+                    {# Each field lives inside a .field container. Both display
+                       and edit fragments replace the innerHTML of this div,
+                       so Edit → form → Save cycles never disturb siblings. #}
+                    <div class="field" data-field="{{ f.fieldname }}">
+                        {% include 'books/_field_display.html' with object=row.book fieldname=f.fieldname value=f.value %}
+                    </div>
+                </dd>
+            {% endfor %}
+        </dl>
+        <p><a href="{% url 'book-edit' pk=row.book.pk %}">Edit with classic one-big-form →</a></p>
+    </article>
+{% empty %}
+    <p>No books yet. Run <code>python manage.py seed_books</code> to populate.</p>
+{% endfor %}
+{% endblock %}

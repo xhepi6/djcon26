@@ -1,0 +1,5 @@
+django>=5.1
+django-mantle
+django-mantle-drf
+djangorestframework
+drf-spectacular

@@ -1,0 +1,1 @@
+https://hakibenita.com/django-reliable-signals

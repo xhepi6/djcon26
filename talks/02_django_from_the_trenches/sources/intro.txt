@@ -1,0 +1,5 @@
+Building applications to serve actual users is really hard! Traffic spike, data accumulates, queries becomes slow, response time suffer and you sre left completely baffled! In this workshop we'll optimize real-life scenarios in a Django application using advanced indexing techniques in PostgreSQL. We will also identify and tackle concurrency issues and experiment with different approaches to prevent them, without bringing the system to a halt. By the end of this workshop you'll learn how to prepare your Django application for the real life.
+
+
+speaker: 
+Haki Benita

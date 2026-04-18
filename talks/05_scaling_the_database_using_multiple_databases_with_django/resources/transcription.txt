@@ -1,0 +1,211 @@
+Families or white queries. These methods do exactly.
+
+[Speaker 1]
+We want bigqueries to always go through replicas, so we always return the value throughout the day, which in turn get sent to the load bouncers and verification between all our answers consist or the infrastructure level. We want right to always go to the primary, so we always return default as well.
+
+[Speaker 1]
+Not so helpful in our case, but still useful to know. Um, there are some extra methods and some. It's all called with heads, so if we want to use a specific database for users, this is where we can do it. This is how you would implement sharing. Gender happens by identifying whether a query Theory or white for you, so the router then knows how to build this properly.
+
+[Speaker 1]
+Um, for those of you who are good at Max, you remember, I said. There are four methods, but I'm going to show them too. Um, that's because there are actually two more. The first one is called allow relation, and it's used to check if Django can actually create foreign key relationship between fluids and systems.
+
+[Speaker 1]
+In our case, the model is using either our primary or our replica because the same data. It's okay in reality, because when you actually get used much, but if we were adding another completely separate database from this future is used to have our original phase. The fourth method is the amount might write.
+
+[Speaker 1]
+This says whether or not and a model can be vibrated using the given connection. The replicate that we know me, so it doesn't make sense when our migrations is. We return false, returning none is the same as not. Finally, like this, that means use the default Pagan or the Israelution possibly care.
+
+[Speaker 1]
+Um, and there you have it. I fully formed paper throughout in around 17 lines of code. Take us from being able from using the defaults. Being able to use our Gap razor applications purely and efficiency. Can't begin this. Using our wrench are almost as easy as it was to write it.
+
+[Speaker 1]
+Much like anything is just assessing the play. Chango is now aware of where to send queries internally. It knows which methods to call. This doesn't work for Wars control if that's a powerful, complicated. You need to have a lot of manually, but if you're using the RM character passing colleges, read queries get sent to the replica, which they'll be nicely handled fast and scale.
+
+[Speaker 1]
+Well, any white skills and primary who's the propagate? How to producers, primates is counting, and you can complex, like the coaches, much less conjecture. Congested rights can happen. System and broken out from there because separate read queries can be scaled across. Read replicas much like horizontally scaling a web server.
+
+[Speaker 1]
+So, we're done, right? Building complex distribution system is one of the hardest challenges to give out of space, so I want to cover a few of those challenges I face when trying to actually function at this. There are many caviasm challenges for using multiple databases, and these are just the ones that I get.
+
+[Speaker 1]
+Sharding Cuomo certainly has its own channels. The first issue, black arms around good old database transactions. You see that is covered? You create a user insert query and then you count the users. Chances select query and so assuming that indicator was empty beforehand, there is one user in our system.
+
+[Speaker 1]
+This will make sense. What about this? Is the same company, but it's just around inside a transaction. What does that grow any guesses? A lot of people saying zero. You might, um, this is not a bug. It's technically correct. The best kind of direct, but it's not what we expect.
+
+[Speaker 1]
+So, why did that happen? Well, the second query is select. You'd run against the replica whilst the insert Israel becomes the primary replication only happens on committed data rather than recognizing content in progress transaction. Therefore, until the transaction is committed, the replicas can't see the data. Much like, how other connections to the same database can't seem uncommitted data.
+
+[Speaker 1]
+Because that's actually what these are. They are completely separate connections. So, what's the solution I'll ever use? As always, one way thing to carve out areas of the Coopers, which right and force all of those who use the paragraph. For example, everything in your concept adequate system must always use the replica if any post requests across the primary, but that's inefficiently and virtual similar opportunity of reads that get caught up in those requests, which don't benefit from being accelerated by our lovely call the replicas.
+
+[Speaker 1]
+An observation and the one else when he went for is to just check whether we're in a transaction if we are then use the default connection. It's less efficient, but it's the only way to ensure consistency. Checkers are inconveniently makes this trivial check. There is a transaction dot get order, which returns where we are in auto commit fur.
+
+[Speaker 1]
+Basically, we are not in a transaction. So, we just consider that in our region with a very quick check and wigger. Next up Django and stuff! This isn't so much of an issue more of an organization because we're doing this in the interest of performance. We want the replica to be used as much as possible.
+
+[Speaker 1]
+Chinese has quite a few tools for getting doing things performantly and properly. When it comes to deeply queries, but sometimes it's not perfect. For example. Where does this community go well? The jet compilation over the right number, because it's a reading that the all creative part of it is a right, so it needs the default connection, the primary.
+
+[Speaker 1]
+So, which is Django shoes, any goals? It goes to the primary always. Um, the reasoning is that they get part, and this is directly from a comment and the source code the Japanese. If you can't put the right connection in order to avoid protective transaction consistency problems. This is fine, I'm good.
+
+[Speaker 1]
+We don't want consistency problems. But sometimes we know better. China has to do what's best for everyone, rather than what's best. Or just me, but they'll be hackers, any person they're dead. So, how should this be done well? All we need to do is make get more creative aware of the replica.
+
+[Speaker 1]
+Chances are to get half is far more common than we all create parts, so we optimized for it. First, we try a simple get if that's all that needed, but that's all clear, and that uses the wrapping cup. If that fails. If you fall back to the regular, get all created.
+
+[Speaker 1]
+This is the boys or even to actually re-implement the bits internally to get all creative shadowing heavily on the well-tested conflict resolution to do this. And so, we want to use it as much as we can. This, in turn, uses the default connection, as I've already mentioned. Unfortunately, it will end up resulting in a jacket query on the unhappy path, but hopefully that Mark isn't cool too often.
+
+[Speaker 1]
+Once the record is created. Other requests can an easy retreat from the replica, just as you want? Now, walking the road with the best coverage. So, I'll just go with you bump. Okay, okay, final problem walking the road that's happening. The majority of China uses only have a single date of this connection, and that's good.
+
+[Speaker 1]
+Chances are, you don't need multiple, and you definitely don't want the complexity that comes with it. Django is very, very well, consistent, and takes the stability of those features very seriously. But novel software is perfect sometimes if it's something to work, it might be Django. And in my case, it was twice.
+
+[Speaker 1]
+Uh, this is a screenshot taken from Django's issue tracker on track. The ticket has a hilariously long title, because that's what I needed to describe. It might be the longest in history with someone from the Arts team. People shame it. That'd be great, um? But running tests in a configuration like this.
+
+[Speaker 1]
+You need to tell January that the replica and the main characters are actually the same things because I'm trying to be able to. This is not using the very setting video later rate settings, then we changes transaction test based with larger tests outside those transaction seeing annual transaction yourself.
+
+[Speaker 1]
+There's a second bit, uh, there's a setting on this test case called CRI rollback. You see, realize that the model's innovator before each test rather than just muting all the tables. It's slower, but it's really useful if migrations. If you have database migrations that create instances, for example of models.
+
+[Speaker 1]
+Um, tissue is usually like a healthy fat. Is that when using serializer all back and mirroring, Django will try and read your actual databases, not the second ones it creates for your tests, which means to really rather weird Behavior in CI, where you see Django create all your tables and then complain.
+
+[Speaker 1]
+None of them exists. Um, conveniently, this was fixed in gender 5.2 and has been backwards 2, 5.1, and off season 6.0, so you never have to worry about this. You never need to share my pain. Welcome to check out the concept of generic foreign keys rather than color. Always going to be primary key that is specific table.
+
+[Speaker 1]
+You can add an additional column, which doesn't model. The microphones are ances uses this quite a large internally can go helpfully, gives you make generic interface like this. You don't really think about levels that are being used, much like in a mobile parking. And again, much like a quality, you can access the other side of that power key relationship from the destination models.
+
+[Speaker 1]
+The problem is that our internship does really weird. If you're trying to brief on it, it uses the replica. This is great if you try and update it. For example, instance.relationship, they'll update. It also uses the replica, which is not great. Other issue is get or created where it's just inefficient.
+
+[Speaker 1]
+This is actually a problem our replicas are reopening, so we get the error whenever we find from an updates. Unfortunately, this is still an outstanding issue. There's a PR can stop in touch for a while. Mine changing here is a to point out holes in Django. When talking about these issues, especially that getting this light is hard both for developers and fellows using Django, um, Django is really, really complicated.
+
+[Speaker 1]
+The fellows can only exercise so many cases. It's important that with us as users help them out with some real world cases, so defects can only get out so far. If something looks weird, take a little bit deeper if it's still it's wind. Make an issue on Frank. But what you are on the issue with generic price, uh, generic rations is a bit of a bond, but it is possible, um, again, it is more functionality inside our database reader.
+
+[Speaker 1]
+Unfortunately, the source code, the source of this bug, is deep down inside the RMS. It's a little bit hard to patch around. Instead, we do it slightly differently. Any model which uses a generic function is be forced to use the default action for now, praised. First, we discover them.
+
+[Speaker 1]
+An employer. And then, if we grow for them, we force it to use the default connection. See, this is where having the model is actually, really helpful. Well, my project is only used in a few small models of performance. Penalty isn't huge. I'm really hoping this gets it. Seems like not very much.
+
+[Speaker 1]
+So?
+
+[Speaker 1]
+They all see the same picture. The exact details of how this is implemented and they're actually syncing process is vary based on whether you're using the child provider or whether you're writing needs yourself, if you have a systems team, make it. Therefore, unplug the rest of my team did to me.
+
+[Speaker 2]
+Has
+
+[Speaker 1]
+Given me two connection trials of the fiery dressing along the low parts that sit in front of the graviders. Both get considered in the league section setting. The rest of the handling is configured, is confined to the data creativity. Which routes, then, which routes traffic from queries in this case to the correct background?
+
+[Speaker 1]
+For using the right query, we want to always use that default connections. If we're in a transaction, always use it for connection. If we're trying to query a generation model. Always use the default character the very least until this blood gets resolved. Otherwise, let's use the background. Always, nothing else in our code base.
+
+[Speaker 1]
+You need to change. But if you know, it's going to be mostly every heavy code path. We can avoid some of Django's filthy things or natural points. Looks like we go before. Get full bridge the router axle. Any RM query whether that's in Arco or someone else's. So we have a research and all of our coparts get updated.
+
+[Speaker 1]
+And with that, it was just a few small coachings later. Our application here is automatic, faster, easy scale, or easier scale. There's a little bit more popular bed set.
+
+[Speaker 3]
+But I'm sure there's many questions. No.
+
+[Speaker 2]
+Questions.
+
+[Speaker 4]
+Thank you. Thank you for your talking, um, I was dreaming. It's a bit like your first example about the transactions. What
+
+[Speaker 1]
+If
+
+[Speaker 3]
+You are outside of a transaction, do a right and do a range again. It will be.
+
+[Speaker 4]
+But it being automatically already in in the second daily. So, is there a chance that you are reading an old value again? There is, yeah, there was a small chance the. So
+
+[Speaker 1]
+I mentioned, forget that kind of the, the replicas think they data from the primary that is not instantaneous, and we haven't quite cracked so far from like sitting yet, uh in theory. Yes, it is possible for you to do an insert immediately. Breathe that back outside of our transaction.
+
+[Speaker 1]
+And yeah, either. Techno existing and things like that. It is in theory possible in practice. I've not seen it, but it is 100 possible. The best games of our life. Just keep your transactions because as high as possible as you are seeing those issues where you are expecting. You won't faith and really read it, wrapping the transaction.
+
+[Speaker 1]
+Obviously, this setup will help but potentially in other use cases. You might want a fraction anyway to make sure that this Lumber code is internally consistent.
+
+[Speaker 1]
+Another question.
+
+[Speaker 2]
+Um, some
+
+[Speaker 1]
+Databases might have to have a synchronous replication option. Is this something you've encountered and tried, or is it not fast enough for category replicas up to date. So, actually, you wasted some time waiting for the kids to propagate across our replicas, but look at work against the replication lab.
+
+[Speaker 1]
+Yeah, you can replicate your life is always going to be a formal. Like I mentioned, there's always going to be an amount of time. When things don't work, it's going to do in practice. I remind this project released on AWS with RDS. They're the, um, that kind of the lag, the milliseconds, which phrase for our use case for rights happening and being propagated out?
+
+[Speaker 1]
+Is Wi-Fi use case other use cases. It probably isn't, and so in those cases, you're either going to need to, um. Try and do as much as you can to optimize that same latency. And that's been changing how your application works something like that. All you're going to need to kind of rearrment things.
+
+[Speaker 1]
+If you're not, you need to be writing something and expecting it to be there individually. It's coming back at a certain scale. You need to do things slightly more easily. That's not a plug for factory tasks, but also please do check with us.
+
+[Speaker 1]
+So, maybe a question for me? If you have somebody else, uh, that's him. Sorry. How do you test this, um? Is quite difficult. You can do this with unit tests, so I mentioned a lot of buds I found was in unit essence. You could have multiple connections to generally and put that the same day.
+
+[Speaker 1]
+Please and check that you get things properly testing the rooster in the end, like the black kind of synthetically. So we have the router configured, and then I'll basically the use case of Dimensions using the transaction test case. You can kind of. Point your code exactly how you wanted to run with transactions with looking at the models and things like that.
+
+[Speaker 1]
+So you just kind of have to think about the use cases that might come up and I break and then put the new use cases. The test cases match that in the most similar way, then you can use, um, any other unit tests. Things get a bit more complicated.
+
+[Speaker 1]
+When you're trying to unit test how this behaves and like actual infrastructure, that's the more complicated. The only way I found you can probably set this up locally and run. Locally, we didn't bother. We just went with. We've probably caused all the bus. Let's get it into our state requirements.
+
+[Speaker 1]
+Let's have lots of people trying for our beta there and see how it behaves. So it's not perfect testing and production, or things like it's generally bad. But sometimes, it's the best of it. Yeah.
+
+[Speaker 2]
+There's a question.
+
+[Speaker 2]
+And she is all, um. About the information African flag. With a similar problem, and it was more popular.
+
+[Speaker 1]
+I don't know how efficiency what you're proposing someone taking anyone, uh, but we, um. Will be set option on the request that basically pins the beginning of. The latest transactions to provide as soon as we need the line. Yeah, do you get my request? As I mentioned, like, is a really good way of doing it, saying, like these views, these requests things like that.
+
+[Speaker 1]
+Will we use in front, right? That works. The problem is, is that? You end up, and if that ends up being sort of a large proportion for a press, then it starts to sort of. You lose and performance benefits. Um, it also doesn't necessarily, but in theory, much rarer.
+
+[Speaker 1]
+But if you're using third-party views of whatever reason, you no longer have quite as much control in this. This was on a Crime Flight Club Builder. Technically, I have commit access to the victory, but sometimes poke at it. I'd probably be fine if I did that. Some are going to, um.
+
+[Speaker 1]
+But up, when you'll kind of. You can put things in turn if you have full control over the best of the new site. It works, but sometimes having things in the brutal is really nice. Is it kind of separates that answer out if you have a thing that deals with playing queries, and then you have your view.
+
+[Speaker 1]
+So the main thing that they're doing it in virtual is really manageable from. There is meant I could deal with the intimacies of when this works. When this breaks smoking, tests the rest of the developers are waiting. You can work exactly as they have done before and other than.
+
+[Speaker 1]
+These lucky, careful around transactions to move their movements and trust that was really valuable.
+
+[Speaker 1]
+Thank you Jake, great call. I learned a lot. Thank you so much.
+
+[Speaker 2]
+We can have.

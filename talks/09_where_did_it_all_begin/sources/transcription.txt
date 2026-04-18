@@ -1,0 +1,310 @@
+Now, it's time for Democrat.
+
+[Speaker 1]
+We are staying in the history. Um, finding atoms first in philosophy, their Natural Science, where I personally found that as very successful model until we found the subatomic particles quite a few of them. Um, yeah, so talk about that or something similar, I assume. Uh, I would like to introduce to you Charlie Denton and stem cells brined both from Craig and Tech.
+
+[Speaker 1]
+Give them a woman welcome, please.
+
+[Speaker 1]
+Is this your screen on? Well, you can sit down there. Oh, can we have this? Yes, and now. The philosophical questions of all. Where did it all begin? Stage is yours.
+
+[Speaker 2]
+Good afternoon, uh, this is Charlie. I'm Sam. We both work at Kraken. You've met a number of our colleagues already, uh up here to, uh, the last couple of days. Uh, we work on a team called developer foundations, which means we treat other developers at the company, like our customers, and it's our job to make sure they have the tools they need to do their work easily and safely.
+
+[Speaker 2]
+We, the two of us, are going to be kind of handing off between us to talk to you today, um. We have two bug bears, um, one of them is too many SQL statements. Um, which is particularly that a Kraken given the scale that we run at and code that looks like it does one thing.
+
+[Speaker 2]
+But actually, it does something completely different. Um, because that's confusing. And it confuses us. So today, we're going to go through a history of of. Transaction Management in Django. We're going to start off by explaining what transactions are just to make sure we're all on the same page. Then we're going to go through how transactions have been managed in Django right from the beginning up until today, and then we're going to describe some of the problems that we still have at Kraken with managing transactions in our application and show you some of the tools we've we've come up with for dealing with that.
+
+[Speaker 3]
+But hey, I suppose I'll project.
+
+[Speaker 2]
+Uh, okay, oh, you hear me now. Great transactions are an SQL concept. They represent. Committing multiple changes at once or not at all. This concept is atomicity, which has been mentioned, and we'll come back to.
+
+[Speaker 4]
+Uh, an important thing to understand in transactions in Django is there is no such thing as a nested transaction. Uh, transactions begin with begin. You can make multiple statements, and you commit them to the database with commit if something goes wrong. In the middle, you can. Cool rollback. To roll the bank, we're going to demonstrate that to you.
+
+[Speaker 4]
+Uh, so that you are familiar with it. So, let's.
+
+[Speaker 2]
+Show you two connections to the same database. On the first one, we will create a table.
+
+[Speaker 2]
+And we're going to. Uh, see, we've create table Heroes. We've got Heroes with names we're going to begin a database transaction. And insert a couple of Heroes.
+
+[Speaker 2]
+So, we're gonna insert Achilles.
+
+[Speaker 2]
+Oh, you can't say it. Sorry, oh hello, that says Heracles. On this side, you can see we have select star from Heroes and we see what's there on the other database connection. When we do the same select statement, there's nothing there because we've not yet committed the transaction. So, if we go back to the first, the first stage?
+
+[Speaker 2]
+Commit, and we'll see that those Heroes are now available on both sides.
+
+[Speaker 2]
+Uh, and just to quickly demonstrate a rollback. Uh, we will. Begin a new transaction. Insert more Heroes. Four, eight two zero. But it's a shame you can't quite see that Jason is spelled. J s o n there, um? Uh, so select start from Heroes, and we'll see that that exists on this side with the open transaction.
+
+[Speaker 2]
+It's not going to yet exist on the other side. And as we realize our mistake, we roll it back, and it will disappear from both sides. Well, if I can spell list. There we go live typing. One more selection. Yeah. Okay.
+
+[Speaker 2]
+Um. Okay, so. A little more to say. Would be nice if we can have our. There we go. Great! So, there's a little more to understand about transactions. Um, as we said they begin with begin, they're committed with commit. Estrell has two modes. It has a default mode where the begin is implicit.
+
+[Speaker 2]
+Um, and it has an auto commit mode where the commit is implicit. Uh, so you do not need to insert and then follow it by a commit in auto commit mode. You simply insert.
+
+[Speaker 2]
+Insert. Yeah, let's. Let's move on to, let's move on to. The history in Jenko. So, we're going to start talking about Django and that's going to involve some python code. And so, just to make sure we're all on the same page. One of the things that's going to come a lot here is context managers.
+
+[Speaker 2]
+A context manager starts with a with statement, and then there's some code that's indented inside that block that is run inside the context. There is some code that's run when you enter the context, and there is some code that runs when you exit the context. That exit might be because you run out of code in the indented block, and you're just moving on.
+
+[Speaker 2]
+It might be because an exception was raised and that gets handled outside the context and the exit function might choose to do something with that exception, which will see a lot of. Uh, these context managers can also often be decorators on a function and most of the ones that we show you today.
+
+[Speaker 2]
+In fact, I think all the ones we showed you today can also be. Functions. So whereas we've got widths on context inside, we could have inside of a function decorated with the context, which means we wouldn't see the context manager in our code. We haven't done that here because that would mean function calls and definitions, and that would be far too much code to bottom one slide.
+
+[Speaker 2]
+We've also tried to highlight the important bits in purple. We, like, purple at Bracken. Um, just so that when there's a bit more code on the page, you can see exactly what we're trying to talk about. So, Django. In the beginning, there was no transaction control. Django did everything for you and it emulated the auto commit mode that Charlie was talking about by putting a commit after every save or delete call.
+
+[Speaker 2]
+Uh, this meant that every change you made was immediately committed in the database, but there was no transactions. You couldn't group changes to be visible once some of them were done. It also meant that every time you call save, you've got at least two statements being executed, which we'll come back to in a moment.
+
+[Speaker 2]
+So this was great when we had this for a little while until July 2006, so nearly 20 years ago we got the concept of transactions, and we got the ability to turn off that auto commit emulation turn off that that immediate commit. And we got a whole Suite of tools to manage that, and we're not going to go into all of them because we've only got half an hour, but the most important one for us is this commit on success context manager.
+
+[Speaker 2]
+Can make some success. That's what it says on the tip. If you exit the context successfully by running out of code, it will commit. If an error is raised or an exception bubbles out of that context, you get a rollback. And this is great! This allows us to make several statements altogether and then commit them at the same time.
+
+[Speaker 2]
+But there was a little bit of a problem with this, and it was called out in the docks at the time, and that problem is when you have multiple commit on success contexts nested inside each other. So, in this case, we've got our commit on success on the outside, followed by creating an author.
+
+[Speaker 2]
+And then, we've got another commit on success, in which we create a book. This is okay when the inner commit on success exits we commit, which means the whole transaction is committed. And we've got our author and our book visible to other Connections in the database. But it does mean right at the bottom there.
+
+[Speaker 2]
+We've got another commit, which does nothing because there's nothing left to commit. You might be okay with this. This is not ideal, but we can accept it, but it becomes a bit confusing when there are errors, so one place there could be an error. Is at the end of the outer commit on success.
+
+[Speaker 2]
+And at this point, we'll try to roll back the changes that it'll be too late because the inner one already committed them so that error doesn't really do what we expect them to do. We've got some code here that looks like it does one thing. Actually, it does something else.
+
+[Speaker 2]
+And if we have the exception on the inside, and I wrap this with a try accept to make it clear it's only being handled by the inner commit on success. We raise our exception, and then we get a rollback which rolls back the whole transaction. The commit, the author, and the book, which means we get to the end where we think everything is successful and we try to commit.
+
+[Speaker 2]
+We don't get anything. Our database is empty. Um, because we've already rolled back, the thing that we thought we were going to commit now, this is particularly sneaky, uh, when, as I said, this creates book function is doing some indirection, and you can't see that there's another commit on success there.
+
+[Speaker 2]
+So, reading this code, you don't know, that create book might be committing. It might be rolling back. It might be leaving you with no data at all. You don't know what's going to get committed at the end of your? Uh, your outer commit on success block. Thankfully, that problem is solvable.
+
+[Speaker 2]
+And that's what Charlie's going to talk about in a moment, but just to recap, we went from having no transaction control at all to having a bit of transaction control, but we had this commit statement after every save and delete, and we had no ability to undo some changes without blowing everything out of the water.
+
+[Speaker 2]
+I introduced you to the default SQL mode and the auto commit mode in Django 1.6. We moved from using the default mode to using the auto commit mode, so inserts saves. Became automatically applied, and now you could automatically. Now, you can apply your context with a begin statement, which must be done explicitly.
+
+[Speaker 2]
+Um. That was enabled by deprecating commit on success and replacing it with tonic. Atom. It looks very much like committal success, except it explicitly calls begin, which is necessary now that we're in auto commit mode. It also goes about solving the nesting problem which it does using save points.
+
+[Speaker 2]
+Sequence or another New Concept. So, a save point allows you to roll back to a specific for a specific point in the transaction and continue the transaction as anything went wrong. Um, this is like in a video game. Way halfway through the level, you can save your progress and something goes wrong, and you start off from.
+
+[Speaker 2]
+We previously showed you this slide.
+
+[Speaker 3]
+Let's show the lack of nesting support, uh, using commit on success. Let's show you what it looks like with the topic.
+
+[Speaker 3]
+With atomic, the outer block uses a begin segment. In the inner block. Uh, now creates a save point that you can. Roll back to, or just move past, it will go as well. If you've got an exception in this inner block now? When the exceptions raised, you roll back to the name, save point.
+
+[Speaker 3]
+And you can continue committing only those changes which you are sure about as you before. Let's recap.
+
+[Speaker 2]
+So, we've gone from having no transaction support at all to having a bit of transaction control and then 1.6. We got partial rollback, and we've got this explicit scope on our transactions. And this is almost everything that we have today. Atomic should be very familiar to anyone that's been trying to manage transactions in a Django project.
+
+[Speaker 2]
+But there's one thing left before we quite catch up to the, uh, the modern era. Now, we might have some code at some point that we actually want to happen outside a transaction. For example, in this case, we've started a transaction, created a book, saved that book, and then we want to tell the author of the book that we we've saved their book, and we want that email to be sent outside a transaction, because, uh, if we roll back the transaction, we can't really get back that email once it's gone out the door.
+
+[Speaker 2]
+Um. An obvious. A way to do this is with on commit so you can register actions to happen sometime later whenever the transaction commits, but sometimes that's not appropriate. Um, if you have more code under here that needed to use the return value of notify author, for example, you need to do it now, not sometime in the future.
+
+[Speaker 2]
+So this one's good, this this looks safe. If I have a function and I, I come across it and I look at it. I go, great. Notify author is happening outside the trend transaction. Only. This is a lie. Because there's another with atomic somewhere else in our code that's wrapping this.
+
+[Speaker 2]
+And that might raise an exception after. We've sent our email, which means that that begin that I thought I had and the commit that I thought I had before notifying the author and actually save points and something else might roll back the book. I mean, it doesn't get get saved.
+
+[Speaker 2]
+The missing property here is called durability. I want to know that that book is going to endure into the future, no matter what happens, and it can't be rolled back by something else. So, there's a solution to this. Five years ago, in 2021, we got durable as an argument to Atomic.
+
+[Speaker 2]
+And that was in Django 3.2, and that allows us to say this atomic block must be durable once it finishes. Nobody else is allowed to roll it back. How that works is, if you try to call it, you try to enter that transaction that Atomic context inside another Atomic context.
+
+[Speaker 2]
+You just get an error at runtime, and that should get picked up by your tests. And if it doesn't get picked up by your tests, you'd expect it to get picked up pretty quickly in production. The rehab, no transaction control, a better transaction control. In 1.6, we got Atomic, which gave us partial rollback and explicit transactions, and then we got durability five years ago, and that brings us up to exactly where we are today.
+
+[Speaker 2]
+Except. We still have the problem at Kraken. Of too many unnecessary queries. And code. That doesn't do what it looks like it does. We're going to run through how Atomic still presents us with these problems sometimes. In this case. Where we are rolling back the inner Atomic block. But not catching the exception.
+
+[Speaker 2]
+We've created a save point that is not used. Uh, we roll back the same point, and then we roll back the whole transaction. So whether we created the save point or not really, there are unnecessary queries.
+
+[Speaker 3]
+Django, uh, did offer a solution to this when Atomic was first introduced, which is the safe point equals false flag. Unfortunately, we found generally speaking. This gets for coming. So, we still have too many queries in the majority of cases.
+
+[Speaker 3]
+As previously mentioned, there's also. Uh, the problem with ambiguity you come across an atomic block? You don't know, just by looking at the code, whether it's going to create a save point, or if it's going to create transaction. Um, and depending on the state of the code where this is called.
+
+[Speaker 3]
+Uh, the same piece of code could do different things, depending on how it's cooled. It might be wrapped in a transaction. And it will create a safe pointer, or it might not and sort of create transaction. Finally, there's no nice API for saying. Make sure there's a connection open or a transaction open or make sure that there's no transaction open.
+
+[Speaker 3]
+Um. You can do this kind of statement a certain not connection in atomic block or assert. In auto commit. Um. Work, but they're not very nice, and they don't play very well tests, so you need to make the transaction test cases which have their own costs. So, we've split Atomic at Bracken into multiple parts.
+
+[Speaker 3]
+We've got transaction, which creates a transaction. We've got save point, which creates a save point transaction if it's already in a transaction will raise an error. Save point will fail if it's not a transaction. We found that most of the time, when you want atomicity, you want things to play together.
+
+[Speaker 3]
+You don't actually. Want to necessarily Define? The scope of the transaction, so transaction required, simply says. These things must run together, but we're not going to Define the scope of the transaction here. We don't want to create transaction. And we've also got durable for saying that you must not be in a transaction.
+
+[Speaker 3]
+So, where we had this before? Where we say are out of luck, is durable, and must create a transaction or inner block. Must not create save points with our new API. Instead, we have with transaction, which
+
+[Speaker 2]
+Creates a transaction and with transaction required, which simply enforces that the code inside must be run within a transaction.
+
+[Speaker 3]
+Uh, this is.
+
+[Speaker 2]
+We found transaction required. Is used. Orders of magnitude more than we actually need save points, so all of those places we had atomic blocks. Um, we've we've now not got the queries. We've reduced our queries a lot, and for coders a lot clearer. It's easier to to reason about this code Racing because we don't need to worry about the external concept context and it applies a pressure on us.
+
+[Speaker 2]
+When you call a code when you call a function that has transaction required on it, to make sure you're managing your transaction properly.
+
+[Speaker 2]
+We've released these tools. Open source. Uh, stronger. So, the topic they're available for you to use? Uh, they've been in production. At Kraken, we are running almost six million lines of code. Sorry, almost 16 million lines of python, uh? And we haven't fully rolled it out, but it's working, and it's working well, and it solves these problems.
+
+[Speaker 2]
+So, we'd like to wrap up. So again. In conclusion, we've gone from having no transaction control at all to gaining the concept of transactions in 0.95 to having the ability to partially roll back those transactions. And set their scope. Getting the concept of durability as part of transactions. And then, at Kraken, we've got this explicit control over the different parts of of our transaction management, uh, with Django subatomic.
+
+[Speaker 2]
+Now, this whole history, uh, has been worked on by people from across the Django Community, um. Charlie and I have been doing a little bit of a subatomic. Um, but we are indebted to everything that has come before us, especially in figuring out this history. Two particular cases I want to call out are emeric's talk at Djangocon 2013, where he talked about the changes that were being made to introduce Atomic, which I think he worked on up to that point and a lot of our history has been derived from.
+
+[Speaker 2]
+From that talk. There's also David Sutton, who used to work at Kraken and was responsible for building some of the foundation of this stuff internally and complaining loudly on the internet about the lack of durable. Um, which was then picked up by some good people that did the work to put it into Django.
+
+[Speaker 2]
+Finally, I think. Eventually. So, Django subatomic, uh, is, uh, released. It was released yesterday. Um, at version 1.0. It's been used in production at Kraken for, um. In, you know, 100 different deployed environments, 16 million lines of code. It does all sorts of things beyond what we've just described.
+
+[Speaker 2]
+It's got some tools for managing oncommit callbacks. And it plays very nicely in tests, uh, which is a whole can of worms. We don't have time to get into, but if you're interested, can we talk to us at lunch or at Sprints tomorrow and Sunday?
+
+[Speaker 3]
+There are a few things that it doesn't do in tests that we're aware of. Um, for example, managing deferred constraints when you exit a transaction context is a little bit hairy. We haven't quite figure that out yet, but for production stuff, it is feature complete. We'd love you to try it out.
+
+[Speaker 3]
+We'd love to hear about whether you think it improves your code, whether it's uh, it's API is easy to use, whether it's self-explanatory within the docs are good. Um, and if you'd love to try it out over the, we'd love for you to try it out at the Sprints and come and talk to us and let us know what you think.
+
+[Speaker 3]
+Thank you very much. Thank you.
+
+[Speaker 3]
+Thank you. So, to ask questions, I can see, I can see.
+
+[Speaker 1]
+See you first, I was, I should. I should look elsewhere. So, surely, hanging in the areas. Can we have this in Django call? I would love to get this into Django call.
+
+[Speaker 2]
+Uh, there are some complications that we haven't yet solved. There would be a bit of a namespace clash with subtomic, for example. Um, we have begun writing a proposal for getting it into gender core. Um, but as I said, we've got some unsold problems that we need to fix.
+
+[Speaker 2]
+Thank you! Nice! There's a question up there. Uh,
+
+[Speaker 1]
+Does this play nicely with? If you're still using Atomic blocks or of any gotchas, if you have older new code mixing, if you're trying to migrate? Uh, if your atomic block is the outermost block. In production code is going to be fine. Um, you're not going to get the guard rails that this offers.
+
+[Speaker 2]
+Um, but you'll get the expected behavior in tests. This project offers some more stringent controls that can be turned on and off. That won't be possible if you're using Atomic.
+
+[Speaker 1]
+We're still using Atomic at Kraken, and we're rolling this out slowly, so they do work in concert together. You just won't get all the benefits. To elaborate a bit.
+
+[Speaker 2]
+One of the things that it doesn't test is emulate real world conditions. If you have a lot of tests in in, a Django project will be wrapped in a transaction, which means if you have things that should happen on commit, they'll never happen because you never commit to changes in a test.
+
+[Speaker 2]
+Um,
+
+[Speaker 3]
+One of the things that the sort of the transaction context does is in tests. It will emulate leaving a transaction, and it'll specifically call those on commit actions, and and what else? Uh, which is really helpful, and that's what doesn't work. If you've got Atomic contexts kind of mixed in with it, that can be a little bit.
+
+[Speaker 3]
+It doesn't always know whether it's leaving a transaction or not, because you're doing mix and match. There are settings that you can turn on and often test to manage that behavior that make it a little bit easier to transition. Um, and that's a whole different talk, so we'd love to talk to you about that at lunch or at the Sprints.
+
+[Speaker 3]
+Um, but we, we thought about putting it in here, and then decided we didn't have time. So, you hear the Sprints and I'll be looking to the readme to know more about this. Absolutely. There was a question there, I think. Thank
+
+[Speaker 2]
+You besides. Atomic Django also has.
+
+[Speaker 1]
+The option of turning it into settings, connecting the.
+
+[Speaker 2]
+The transactions to request and Link. Does that also work well with the Samsung? We don't have that turned on the Kraken. Um,
+
+[Speaker 3]
+If you did that with subatomic, then because the outermost block would be Atomic, you wouldn't get the automatic oncoming callbacks as you'd expect. Maybe there's a way of tying it into the requests, but we haven't looked into that.
+
+[Speaker 1]
+Uh, thank you very
+
+[Speaker 5]
+Much. Uh, are there any database restrictions on? Or does it work with any? Django spotted backhands. We test against postgres,
+
+[Speaker 2]
+And we exclusively use postgres at Kraken, so. The short answer, I don't know, but we don't have any reason to believe it would be. We intend to expand the tests, do more types, and everything in the code base is using hyphen. There's no. Special astral in there yet, but that might change if we have to support.
+
+[Speaker 2]
+And deferred callback. Sorry, deferge constraints. I'm not quite sure, but I expect that we'll find a way of making it work for everything if we can. Yeah.
+
+[Speaker 1]
+Thank you! More questions we have should also say, especially as we would like to get into Django. We would like to support databases absolutely. Sorry. More questions. If there's one right to the front row now, I walk. Hopefully a friendly question. Hopefully. Um, you mentioned one of the benefits of, uh, removing the the save points
+
+[Speaker 2]
+Is fewer queries. Are
+
+[Speaker 5]
+There any other particular benefits specifically? Maybe have if you're using postgres to removing save points, so
+
+[Speaker 2]
+Having too many save points is a problem because you've got? Uh, statements being executed that aren't necessary when you have a lot of nested save points. Postgres can handle that to a point, and there's a point at which it changes the way that it's keeping track of that and becomes very inefficient.
+
+[Speaker 2]
+This is a problem. We had a Kraken and this was actually what started us down. All of this road was when you're nesting safe points down a long way. Um. Things get bad. It stops processing things in memory, I think, and starts putting stuff on disk. Yeah, I'm sure that was a leading question from Tim, who I'm sure, no, probably more than we do about the exact consequences of that.
+
+[Speaker 2]
+Um, but we'd love to talk about it again, uh? Well, we've got more time outside. Okay, thank you. That's, that's. Um, that's one more question. Great.
+
+[Speaker 1]
+Perhaps leading on from Thames, um, do you have any tools or what tools do you have to kind of? Interrogate the code base to see when this is started, like to be appropriate to start using this stuff. So when you've got nested transactions. Do you have like limpters, that kind of stuff?
+
+[Speaker 1]
+Maybe that shows this,
+
+[Speaker 2]
+And I turn lead to Kraken. We have wrappers around these tools that measure, uh, that record metrics to show how we're using them that's not built into subatomic, but you could create similar wrappers that would, uh. Then record. You could record a depth metric. For example, you could do that same thing, just using Atomic, which is how we started here.
+
+[Speaker 2]
+We, we wrapped Atomic, replaced that throughout our code base and added metrics to just see how it was being used. And that's where we started.
+
+[Speaker 1]
+Okay, thank you once more to Charlie and Sam for this interesting view into the subatomic world. Please give them a better power.

@@ -1,0 +1,18 @@
+{# Project-wide form template override.
+   Because 'django.forms' is listed in INSTALLED_APPS and this file lives at
+   templates/django/forms/dl.html, any Form with
+       template_name = 'django/forms/dl.html'
+   will render as a <dl>. Used by BookForm and SingleFieldFormMixin.
+#}
+<dl class="form">
+{% for field, errors in fields %}
+    <dt>
+        {% if field.label %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% endif %}
+    </dt>
+    <dd>
+        {{ errors }}
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text|safe }}</div>{% endif %}
+    </dd>
+{% endfor %}
+</dl>

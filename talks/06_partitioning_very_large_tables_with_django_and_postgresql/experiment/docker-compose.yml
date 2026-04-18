@@ -1,0 +1,30 @@
+# PostgreSQL for the partitioning demo.
+#
+# Only the database runs in docker — the Django app runs on the host so you
+# can iterate on management commands quickly. The port is exposed on 55432
+# (not the default 5432) so we don't collide with a local Postgres install.
+#
+# Explicit project name so volumes don't collide with other talks' demos
+# that also live in an `experiment/` directory.
+name: djcon26_partitioning
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: djcon26_partitioning_db
+    environment:
+      POSTGRES_DB: partitioning
+      POSTGRES_USER: partitioning
+      POSTGRES_PASSWORD: partitioning
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U partitioning -d partitioning"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  pgdata:

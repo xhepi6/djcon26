@@ -1,0 +1,29 @@
+# PostgreSQL for the caving-incidents demo.
+#
+# Port 55433 on the host so this doesn't collide with talk 06's 55432 or a
+# locally-installed Postgres. The Django app runs on the host.
+#
+# Explicit project name so volumes don't collide with other talks' demos
+# that also live in an `experiment/` directory.
+name: djcon26_incidents
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: djcon26_incidents_db
+    environment:
+      POSTGRES_DB: incidents
+      POSTGRES_USER: incidents
+      POSTGRES_PASSWORD: incidents
+    ports:
+      - "55433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U incidents -d incidents"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  pgdata:

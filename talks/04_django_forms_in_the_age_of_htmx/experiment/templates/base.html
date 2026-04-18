@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Single Field Forms — DjangoCon Europe 2026</title>
+    {# HTMx from CDN — no Python dependency needed #}
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 820px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            line-height: 1.4;
+            color: #222;
+        }
+        h1 { margin-bottom: 0.25rem; }
+        header p { color: #666; margin-top: 0; }
+        nav a { margin-right: 1rem; }
+        article.book {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            background: #fafafa;
+        }
+        article.book h2 { margin: 0 0 0.5rem 0; font-size: 1.2rem; }
+        dl.fields {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 0.4rem 1rem;
+            margin: 0;
+        }
+        dt { color: #555; font-size: 0.9rem; }
+        dd { margin: 0; }
+        .field .value { margin-right: 0.5rem; }
+        .field .empty { color: #999; font-style: italic; }
+        .field form { display: inline-block; }
+        .field input[type=text],
+        .field input[type=number],
+        .field textarea {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #888;
+            border-radius: 4px;
+            font: inherit;
+        }
+        button {
+            cursor: pointer;
+            padding: 0.15rem 0.6rem;
+            border: 1px solid #888;
+            background: #fff;
+            border-radius: 4px;
+        }
+        button:hover { background: #eef; }
+        .errorlist {
+            color: crimson;
+            margin: 0.25rem 0 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.85rem;
+        }
+        .subtle { color: #888; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Single Field Forms</h1>
+    <p class="subtle">DjangoCon Europe 2026 — Hanne Moa. Click any value to edit it in-place via HTMx.</p>
+    <nav>
+        <a href="{% url 'book-list' %}">Books (HTMx inline edit)</a>
+        <a href="{% url 'book-new' %}">+ New book (classic form)</a>
+    </nav>
+</header>
+<main>
+    {% block main %}{% endblock %}
+</main>
+</body>
+</html>

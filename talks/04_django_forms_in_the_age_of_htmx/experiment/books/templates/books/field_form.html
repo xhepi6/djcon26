@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{# Non-HTMx full-page version of the same single-field form. Rendered when you
+   open /<pk>/<fieldname>/ directly in a browser (no HX-Request header). #}
+
+{% block main %}
+<h2>Edit <code>{{ fieldname }}</code> of &ldquo;{{ object.title }}&rdquo;</h2>
+<p class="subtle">Same view, same form — just the full-page template instead of a fragment.</p>
+<form method="post" action="{% url 'book-field-update' pk=object.pk fieldname=fieldname %}">
+    {% csrf_token %}
+    {{ form.get_field.errors }}
+    {{ form.get_field }}
+    <div style="margin-top: 1rem;">
+        <button type="submit">Save</button>
+        <a href="{% url 'book-list' %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

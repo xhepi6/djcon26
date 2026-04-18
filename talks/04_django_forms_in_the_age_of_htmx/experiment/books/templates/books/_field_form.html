@@ -1,0 +1,21 @@
+{# Edit partial: the 'edit mode' of a field.
+   Submitting hx-posts to the update URL; server returns _field_display.html.
+   The plain method/action attributes are kept so this works even if HTMx
+   fails to load (graceful degradation). #}
+<form method="post"
+      action="{% url 'book-field-update' pk=object.pk fieldname=fieldname %}"
+      hx-post="{% url 'book-field-update' pk=object.pk fieldname=fieldname %}"
+      hx-target="closest .field"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+    {# get_field() is the mixin helper that returns the single BoundField.
+       We render errors explicitly because a bare BoundField ({{ form.get_field }})
+       emits only the widget — the errorlist lives on .errors. #}
+    {{ form.get_field.errors }}
+    {{ form.get_field }}
+    <button type="submit">Save</button>
+    <button type="button"
+            hx-get="{% url 'book-field-display' pk=object.pk fieldname=fieldname %}"
+            hx-target="closest .field"
+            hx-swap="innerHTML">Cancel</button>
+</form>

@@ -1,0 +1,142 @@
+And I think he likes about.
+
+[Speaker 1]
+Uh, yeah, so? The the four zeroes?
+
+[Speaker 1]
+Thank
+
+[Speaker 2]
+You and I didn't know. Hi, I'm Sin, and I work for pregnancy. Um, we write and operate our program software that supports energy and other brief mutuality retail operations for our clients. Cracking the currently has about 40
+
+[Speaker 1]
+Different production installations around
+
+[Speaker 2]
+The world, and we employ new versions of code about 50 times further. Ask Franklin husband the past few years doing stuff with that license.
+
+[Speaker 2]
+I am on the database Administrators, but the things I've worked on have granted have been giving me an education in DBA teams. Um, and it's been quite learning experience. Recently, I've given some talks on database topics, reflecting things that I've learned in 2023 about locking cues and how the genco or I don't is a leaky extraction.
+
+[Speaker 2]
+In 334 about making Douglas schema changes safely using multiple steps and 335 about doing B into conversions using Django migrations. It was one of doing a video conversion, uh, at work that I encountered an issue that was going back to the next topic for me to go into. We had mission.
+
+[Speaker 2]
+There was a huge fight three terabytes inside. It had nine billion brothers and I been. Yes, we're using obedient primary ticket, and they were speaking to 30 million brother base today. And if you know about how the postgres works, we did not play the role that we use a few people behind that needs to be cleaned up by vacuuming.
+
+[Speaker 2]
+Um, and that I communities around about once per day. Because the size of the table vacuuming typically took us 16 to 20 hours to complete. Now, the issue here is the order vacuuming blocked or delay the schema changes that we needed to do to begin conversion. So, what can we do about this huge moment and the final stacking connection?
+
+[Speaker 2]
+That's the way the title publishing in this story. As I said, I'm not that great administrator by background, so I needed to learn about public partnership, what it is Health Works, and how to do it. So, I changed the first recipe of 14 internist, which is my go-to reference for understanding voters.
+
+[Speaker 2]
+The excellent resource, extremely retired. Unfortunately, there isn't a chapter on table position. The truth doesn't cover the topic at all and doesn't even mention it, except once in person.
+
+[Speaker 1]
+Latini. There are some talks about it, this one from Karen Jackson is excellent. If you're watching this, talk on YouTube from the future, uh, I recommend, pausing that on going to this link watching council and then coming back to my talk to those of you in the room, um, sorry.
+
+[Speaker 1]
+And of course, they are the first results. Partitioning refers to splitting what is logically. One large statement is a smaller, visible business. The boxer excellent, but there are many details to discover understanding the implications of the details, has some work, and there's also the question of how partitioning works with Jane goes specifically.
+
+[Speaker 1]
+All of these things are under recovering in this talk.
+
+[Speaker 3]
+So, let's begin with the basics I'm quoting from the postgres dots again. The partition table itself is a virtual favorite, having no storage of his own. Instead, the story belongs to partitions, which are otherwise ordinary tables associated with different partition paper. So, here we have. My favorite I partition table.
+
+[Speaker 1]
+It's a virtual table that's the representative budget across the top and has no, it grows itself. Each of its 10 partitions are actual tables with rows, and you can see they have a notes like my table part one right table button, Etc. The point is, politicians are just like ordinary.
+
+[Speaker 1]
+Posterous titles is really important. They have their own ear exist rights. Um, because they do need to have the same columns as the main table they partitions on. So, the previous mind was missing some details about partitioning that we're going to fill in here. Uh, petitioning is done by Royals and each row forms in a partition based on its partition key, then the partitioning method and in partition balance.
+
+[Speaker 1]
+So, here we partition my face, the range partitioning method. Um, using the ID column as the partition kit. Each partition has partitioned down as defined, so the first partition is balance. Our idea is great then, or equal to zero and less than 100, and so on for the other partitions.
+
+[Speaker 1]
+Like that, uh, practice with these cases would have a much larger partition than 100 values. It's just if I use a million here. The slides would be too wide. Partitioning ensures that each row has a home and at most one partition.
+
+[Speaker 1]
+So? Positioning is transparent to the application. Then, you know, January. Um, that means that gender inserted up late and libros as usual. As well as query as usual. And it doesn't need to know that the underlying state of this partition. But uh, development says it's mostly transcription, um, a spoiler alert.
+
+[Speaker 1]
+It's a leaky abstraction. Um, what's our national lead, the abstraction before? What is it? Um, here's a slide from 1923 talk with Joel Oski's law of squeaky abstractions, all non-trivial abstractions to some degree are legal. And what that means is that some detailers supposedly abstracted away actually becomes relevant.
+
+[Speaker 1]
+Um, the Django RM is one example, the leaky extraction. When you're using to abstract the wave, they can place it in the database that otherwise our blood models. But they have to actually released, and we sometimes need to engage with what's going on in the database. Partition tables are a lovely construction.
+
+[Speaker 1]
+You need to pay attention to the details of the partitioning into all the issues. And we'll just be saying on some of those potential issues are later on. Winding on the partition Traders. So, one reason is to reduce table maintenance time vacuuming. That's the motivating factor that got me interested in is.
+
+[Speaker 1]
+Um Jason life cycle management, so gave me about officially dropping all the data. Uh, query components can be improved by partitioning. And all of these can help with scally your apprehension. And that's a big issue of triangles because we keep growing and repeat more at the customers online, like one dollar, so.
+
+[Speaker 1]
+Next, question is when, which means is? You should consider partitioning your table if it's over 100 gigabytes in size.
+
+[Speaker 1]
+If it has over 100 million rows. And this is actually a good question. Once your table has already gradually size, you might pour into experiencing problems. So, if you expect your table to grow to above both sizes, then you should be considering partition. And later. I'm going to look at how to conversion normal taste into a partition table just to give, you know, in case you realize it's too late that it needs to be partitioned.
+
+[Speaker 1]
+Um, finally, given the complexity of partitioning you should not partition unless you really need to.
+
+[Speaker 1]
+So, there are some key positions to be made in the practitioning of people. Firstly for the publishing method, so I've chosen the range measurement before. There are also listed hash methods, but I'm not going to talk about those in any details. Um, the choice of the partitioning key is critical, and it also helps determine partitioning method for some Keys work with.
+
+[Speaker 1]
+Uh, some of it is better nums. Um, the the number of positions, uh, is also important, and it dependence on the expected sizes, and they kind of you consider those two things together. Um, a fundamental feature of partitioning in utility to add or remove partitions as needed. But you need to choose your path to significant and key appropriate for that to work.
+
+[Speaker 1]
+So, for example, if we, um, range partitioning by creative asphalt? Um, you can have, say, one month of the competition. Or maybe 1am. What is a decision? The expected amount of data?
+
+[Speaker 1]
+So, um? Here are some principles Karen object says in the talk. I think so before publishing often works with. The application is designed from the ground up of partition in mind. Um, however, if you find that you need to retrofit partition during application, which is what I've found, um, you may need to make compromises.
+
+[Speaker 1]
+But if you're looking to publish in your code, you need to choose your partitioning method and partition key based on the queries you expect to use and the life cycle of your data. For instance, you've only remove data that's more than seven years old. Then, you will need to have the partitioning putting all of that data in in one-on-one partitions by itself.
+
+[Speaker 1]
+Another principle is that, ideally, queries should access only a single partition. Um, when the when the community includes the partition key in the Wagos, postgres can do what's called partition pruning to achieve that. And just to restate the choice of the partitioning is partition. KT is critical. So, let's look at that partition premium, as I mentioned.
+
+[Speaker 1]
+The postcode querify that looks at the rare cause of query. So this is a very simple group where I being equals 271 is the way it goes. So it uses the ID column, which is the partition B in this case. And given, and the given ID value Falls in the third partition that one there, looking at the partition balance.
+
+[Speaker 1]
+So, the query I'm going to need to consult that partition and its index? And it's actually done by the query. Climate declaration starts executing the query. The other nine partitions are pruned from consideration, so the amazing what exists as far as the experience is considered? So, once again, politics improvements is possible here because of partition key was in the whereforce.
+
+[Speaker 1]
+Um, there are limitations. Have gone on about the partition fee. One of the limitations that's critical is that it must be part of any genetic constraint. Including the primary care constraint. And this comes down to how press rate implements the constraints through indexes on the tables. And remember, partitions are tables.
+
+[Speaker 1]
+And if? Because there are separate indexes if the partition KD is not part of the constraint, it can't guarantee uniqueness across all the partitions. So, if you want to partition on something other than the program again? We might need to look at using composite primaries. Now, Django 5.2 added partial support for constant primary keys, but it doesn't have support for foreign key relations with database constraints by default.
+
+[Speaker 1]
+So there's a little thing that we're aware of, and there's a reason to avoid constant primary keys. Um, there's another notation, which is, postgres can't type tissue existing papers. But there are a few ways around that limitation, and we're going to be looking at the time. And so far, we'll be talking about publishing mostly in postgres sense.
+
+[Speaker 1]
+Where does Django get into all this? Um. It's a big surprise in this. That it has no idea supports outside the politicians. But because practitioning is mostly transparency, application generator doesn't actually need to know if a particular labor of Science issues queries by the other owner who is still just work.
+
+[Speaker 1]
+So, yes, it's okay. Thanks for transparency, but watch out for the demonstrations. Having to get a partition type with gender. Let's look at some of the options. This package called Django pressure is extra, and it lets you declare a lot of this partitioning. That will use a special migration operation to create advertisement as partitions.
+
+[Speaker 1]
+And here's an example from the documentation. However, there's no support for partnership existing folder. Also. Unfortunately, the package doesn't support the rest of gender versions. But there are other packages that might be over the hill, but then on Django specific. So, picky partner is a postgres extension that is very popular in lower garden.
+
+[Speaker 1]
+It's used to manage an initial partitioning as well as maintenance tasks. Maintenance tasks, such as adding new partitions. It's not an easy way. When you're ready for Django to create an old stages as partition can start, but it does have a way to convert the players to being politicians.
+
+[Speaker 1]
+But that requires copying each row twice in the process. And it's been developed by one of my colleagues of Frankenstein, my selections in Fernandez. He's a platform package that doesn't integrate for the renting with Django as simply as Django posture. It hasn't happened for partitioning an existing table, but it also it rise coughing intro, but only once.
+
+[Speaker 1]
+So, while pitch department and psychopathic don't immigrate directly with Django, you can be used. You can't use them with custom gender migration operations that you like yourself. So?
+
+[Speaker 1]
+So, and preferred way for making database schema changes is via gender migrations. All right, I now want to take this back to the table that motivated my investigation partition in the first place. It's technical workflow stick. We're going to look at the different considerations for governments are deciding how to partition the table.
+
+[Speaker 1]
+What else we need to do to make that publishing work well?
+
+[Speaker 1]
+As the previous to mentioned this existing title, it's used in our workflow section. It's a good place tracker status and contest for each step within a work cycle. Once the workflow is complete, the steps are not updated any further, which means that old.
