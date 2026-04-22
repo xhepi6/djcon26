@@ -6,18 +6,19 @@ Practical, noise-free summaries of DjangoCon Europe 2026 talks. Each talk comes 
 
 Each folder in `talks/` is one talk:
 
-| # | Talk | Summary | Experiment |
-|---|------|---------|------------|
-| 01 | Static Islands in a Dynamic Sea | done | done |
-| 02 | Django From the Trenches | done | done |
-| 03 | Reliable Django Signals | done | done |
-| 04 | Django Forms in the Age of HTMX | done | done |
-| 05 | Scaling the Database: Multiple Databases with Django | done | done |
-| 06 | Partitioning Very Large Tables with Django and PostgreSQL | done | done |
-| 07 | Digitising Historical Caving Data with Python and Django | done | done |
-| 08 | Role-Based Access Control in Django | done | done |
-| 09 | Where Did It All Begin | - | - |
-| 10 | What's in Your Dependencies | - | - |
+| # | Talk |
+|---|------|
+| 01 | [Static Islands in a Dynamic Sea](talks/01_static_islands_dynamic_sea) |
+| 02 | [Django From the Trenches](talks/02_django_from_the_trenches) |
+| 03 | [Reliable Django Signals](talks/03_reliable_django_signals) |
+| 04 | [Django Forms in the Age of HTMX](talks/04_django_forms_in_the_age_of_htmx) |
+| 05 | [Scaling the Database: Multiple Databases with Django](talks/05_scaling_the_database_using_multiple_databases_with_django) |
+| 06 | [Partitioning Very Large Tables with Django and PostgreSQL](talks/06_partitioning_very_large_tables_with_django_and_postgresql) |
+| 07 | [Digitising Historical Caving Data with Python and Django](talks/07_digitising_historical_caving_data_with_python_and_django) |
+| 08 | [Role-Based Access Control in Django](talks/08_role_based_access_control_in_django) |
+| 09 | [Where Did It All Begin](talks/09_where_did_it_all_begin) |
+| 10 | [What's in Your Dependencies](talks/10_whats_in_your_dependencies) |
+| 11 | [Is It Time for a Django Admin Rewrite?](talks/11_is_it_time_for_django_admin_rewrite) |
 
 ## Talk folder structure
 
@@ -76,7 +77,3 @@ python manage.py seed_data
 - Lead with "what it does"
 - Code over prose
 - No fluff
-
-## Status
-
-Work in progress. Talks 09 and 10 still need summaries and experiments.
