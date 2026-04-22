@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mantle Experiment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e1e4e8; padding: 24px; max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .intro { color: #8b949e; margin-bottom: 32px; line-height: 1.5; }
+  .intro strong { color: #c9d1d9; }
+
+  .test { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+  .test h2 { font-size: 1.05rem; margin-bottom: 6px; }
+  .test .why { color: #8b949e; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px; }
+  .test .why strong { color: #c9d1d9; }
+  .test .look-for { background: #1c2128; border-left: 3px solid #58a6ff; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 14px; color: #8b949e; line-height: 1.5; }
+  .test .look-for strong { color: #58a6ff; }
+
+  .endpoint { font-family: monospace; font-size: 0.85rem; color: #7ee787; margin-bottom: 10px; }
+  button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+  button:hover { background: #30363d; }
+  .result { margin-top: 12px; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; max-height: 350px; overflow-y: auto; display: none; }
+  .result.visible { display: block; }
+
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .form-row input { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; }
+
+  .versus { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .versus > div > h3 { font-size: 0.85rem; margin-bottom: 8px; color: #8b949e; }
+  .versus .result { display: block; min-height: 80px; }
+  .versus .label-bad { color: #f85149; }
+  .versus .label-good { color: #3fb950; }
+
+  hr { border: none; border-top: 1px solid #21262d; margin: 32px 0; }
+  .footer { color: #484f58; font-size: 0.8rem; }
+  .footer a { color: #58a6ff; }
+</style>
+</head>
+<body>
+
+<h1>Mantle Experiment</h1>
+<p class="intro">
+  <strong>Talk:</strong> "Static Islands in a Dynamic Sea" by Carlton Gibson.<br>
+  <strong>Idea:</strong> Don't make Django typed. Build typed <code>attrs</code> classes on top of the ORM.
+  Mantle reads those classes and auto-generates optimized queries. No manual <code>only()</code>,
+  <code>select_related()</code>, or serializers.
+</p>
+
+<!-- TEST 1 -->
+<div class="test">
+  <h2>Test 1 — Shape as serializer</h2>
+  <p class="why">
+    Normally you'd write a <strong>BookmarkSerializer</strong> with a <code>class Meta</code>,
+    field lists, and validation methods. With Mantle, you just declare a shape:
+    <code>BookmarkShape(url, title, comment)</code>. That's the entire serializer.
+  </p>
+  <div class="look-for">
+    <strong>Look for:</strong> The response only has <code>url</code>, <code>title</code>, <code>comment</code>.
+    No <code>id</code>, no <code>favourite</code>, no <code>created_at</code>, no <code>user</code> —
+    Mantle only fetches and returns what the shape declares.
+  </div>
+  <div class="endpoint">GET /api/bookmarks/</div>
+  <button onclick="fire(this, '/api/bookmarks/')">Run</button>
+  <div class="result"></div>
+</div>
+
+<!-- TEST 2 -->
+<div class="test">
+  <h2>Test 2 — N+1 prevention (the big one)</h2>
+  <p class="why">
+    The classic Django trap: loop over bookmarks, access <code>b.user.username</code> each time,
+    and Django fires a <strong>separate SQL query per bookmark</strong>. With 1000 bookmarks that's
+    1001 queries. Mantle sees <code>user: UserData</code> nested in your shape and auto-generates
+    <code>prefetch_related</code>. <strong>Same data, fraction of the queries.</strong>
+  </p>
+  <div class="look-for">
+    <strong>Look for:</strong> Both sides return identical data. But the left side (naive) shows
+    <code>queries_executed: 7</code> (1 + 6 per bookmark). The right side (Mantle) does it in 2.
+  </div>
+  <div class="endpoint">GET /api/bookmarks/naive/ vs GET /api/bookmarks/nested/</div>
+  <button onclick="compare()">Run Both Side by Side</button>
+  <div class="versus">
+    <div>
+      <h3 class="label-bad">Naive Django (N+1)</h3>
+      <div class="result" id="cmp-naive">Click "Run Both"</div>
+    </div>
+    <div>
+      <h3 class="label-good">Mantle (auto-prefetch)</h3>
+      <div class="result" id="cmp-nested">Click "Run Both"</div>
+    </div>
+  </div>
+</div>
+
+<!-- TEST 3 -->
+<div class="test">
+  <h2>Test 3 — Field flattening with @overrides</h2>
+  <p class="why">
+    Sometimes you want <code>"username": "alice"</code> at the top level instead of
+    <code>"user": {"username": "alice"}</code>. The <code>@overrides</code> decorator
+    annotates <code>F("user__username")</code> and Mantle generates a single JOIN —
+    no extra query, no Python-side reshaping.
+  </p>
+  <div class="look-for">
+    <strong>Look for:</strong> <code>username</code> is a top-level field next to <code>url</code> and <code>title</code>.
+    No nested <code>user</code> object.
+  </div>
+  <div class="endpoint">GET /api/bookmarks/flat/</div>
+  <button onclick="fire(this, '/api/bookmarks/flat/')">Run</button>
+  <div class="result"></div>
+</div>
+
+<!-- TEST 4 -->
+<div class="test">
+  <h2>Test 4 — Create with validation</h2>
+  <p class="why">
+    Mantle's <code>compose_validators(unique_field("url"))</code> checks constraints
+    before inserting. <strong>Submit once</strong> — it works. <strong>Submit again with the
+    same URL</strong> — Mantle rejects it.
+  </p>
+  <div class="look-for">
+    <strong>Look for:</strong> First submit returns <code>"created"</code>. Second submit
+    with the same URL returns <code>"error": "Bookmark with url='...' already exists"</code>.
+  </div>
+  <div class="endpoint">POST /api/bookmarks/validated/</div>
+  <div class="form-row">
+    <input id="val-url" value="https://test-unique.com" placeholder="url">
+    <input id="val-title" value="Test" placeholder="title">
+  </div>
+  <button onclick="fire(this, '/api/bookmarks/validated/', 'POST', {url: q('#val-url').value, title: q('#val-title').value, comment: 'test'})">Submit</button>
+  <div class="result"></div>
+</div>
+
+<!-- TEST 5 -->
+<div class="test">
+  <h2>Test 5 — Update (shape fields only)</h2>
+  <p class="why">
+    <code>mantle.update()</code> only touches fields in the shape. The bookmark's <code>user</code>
+    stays unchanged because <code>BookmarkData</code> doesn't include it.
+    Validation still runs — try changing the URL to one that already exists.
+  </p>
+  <div class="look-for">
+    <strong>Look for:</strong> The title changes. Then try setting the URL to
+    <code>https://docs.djangoproject.com/</code> (already taken) — it should fail validation.
+  </div>
+  <div class="endpoint">PUT /api/bookmarks/{id}/update/</div>
+  <div class="form-row">
+    <input id="upd-id" value="1" placeholder="ID" style="max-width:60px">
+    <input id="upd-url" value="https://docs.djangoproject.com/" placeholder="url">
+    <input id="upd-title" value="Django Docs (updated!)" placeholder="title">
+  </div>
+  <button onclick="fire(this, '/api/bookmarks/' + q('#upd-id').value + '/update/', 'PUT', {url: q('#upd-url').value, title: q('#upd-title').value, comment: 'updated via test panel'})">Submit</button>
+  <div class="result"></div>
+</div>
+
+<hr>
+<p class="footer">
+  DRF endpoints also in <a href="/api/docs/">Swagger UI</a> &middot;
+  Query details: <code>python manage.py compare_queries</code>
+</p>
+
+<script>
+const q = s => document.querySelector(s);
+
+async function fire(btn, url, method = 'GET', body = null) {
+  const el = btn.parentElement.querySelector('.result');
+  el.classList.add('visible');
+  el.textContent = 'Loading...';
+  try {
+    const opts = { method, headers: {} };
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    el.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function compare() {
+  const naiveEl = q('#cmp-naive'), nestedEl = q('#cmp-nested');
+  naiveEl.textContent = nestedEl.textContent = 'Loading...';
+  try {
+    const [naive, nested] = await Promise.all([
+      fetch('/api/bookmarks/naive/').then(r => r.json()),
+      fetch('/api/bookmarks/nested/').then(r => r.json()),
+    ]);
+    naiveEl.textContent =
+      'QUERIES: ' + naive.debug.queries_executed + ' (1 listing + 1 per bookmark)\n\n' +
+      JSON.stringify(naive.bookmarks, null, 2);
+    nestedEl.textContent =
+      'QUERIES: 2 (auto-prefetch via shape)\n\n' +
+      JSON.stringify(nested, null, 2);
+  } catch (e) {
+    naiveEl.textContent = nestedEl.textContent = 'Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

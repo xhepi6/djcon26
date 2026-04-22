@@ -25,12 +25,11 @@ Each folder in `talks/` is one talk:
 ```
 talks/XX_talk_name/
   README.md              # summary (renders on GitHub)
-  sources/               # raw materials (temporary, will be removed)
-  experiment/            # runnable Django project
-    manage.py
-    requirements.txt
-    config/              # settings, urls
-    <app>/               # app scoped to the talk topic
+  manage.py
+  requirements.txt
+  config/                # settings, urls
+  <app>/                 # app scoped to the talk topic
+  templates/             # test panel (if present)
 ```
 
 Each talk is **self-contained** -- separate requirements, separate db, no shared monolith.
@@ -40,27 +39,16 @@ Each talk is **self-contained** -- separate requirements, separate db, no shared
 Pick any talk and:
 
 ```bash
-cd talks/XX_talk_name/experiment
+cd talks/XX_talk_name
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py seed_data
 python manage.py runserver
 ```
 
-Most experiments include management commands for seeding demo data:
-
-```bash
-python manage.py seed_data
-```
+Some talks include a `/test/` page with an interactive test panel that explains each endpoint and lets you run them from the browser.
 
 ## How to contribute
-
-### Writing a summary
-
-1. Look at `talks/template.md` for the format
-2. Read the `sources/intro.txt` for the talk description
-3. Use `sources/slides_extracted.md` as primary content (if it exists)
-4. Use `sources/transcription.txt` for extra context (Q&A, nuance) -- never quote it directly, it's noisy auto-generated text
-5. Write the `README.md` following the template
 
 ### Building an experiment
 
@@ -69,7 +57,8 @@ python manage.py seed_data
 - Pin minimum versions in `requirements.txt`
 - Add comments pointing to what each piece demonstrates
 - Include `seed_data` management command for demo data
-- It should just work with the 3-command sequence above
+- Add a `/test/` page if the talk benefits from interactive testing
+- It should just work with the 4-command sequence above
 
 ### Writing style
 

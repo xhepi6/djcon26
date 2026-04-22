@@ -62,3 +62,14 @@ class BookmarkShape:
     url: str
     title: str
     comment: str = ""
+
+
+# -- Write shape: includes user_id so mantle.create() can assign the FK --
+
+@attrs.define
+class BookmarkWriteData:
+    url: str
+    title: str
+    comment: str
+    favourite: bool
+    user_id: int

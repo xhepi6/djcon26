@@ -212,28 +212,28 @@ spec = to_spec(BookmarkData)
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project with all the examples above. Try it:
+This folder is a runnable Django project with all the examples above. Try it:
 
 ```bash
-cd experiment
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py seed_data
 python manage.py runserver
 ```
 
-Then hit these endpoints:
+Then open:
 
-| URL | What it shows |
-|-----|---------------|
-| `/api/bookmarks/` | DRF list+create using Mantle shapes (replaces serializers) |
-| `/api/bookmarks/<id>/` | DRF detail view |
-| `/api/bookmarks/nested/` | Plain Django view with nested user data (no N+1) |
-| `/api/bookmarks/flat/` | Plain Django view with `@overrides` flattening |
-| `/api/docs/` | Swagger UI (via drf-spectacular) |
-| `/admin/` | Add test data here |
+- **`/test/`** — interactive test panel with all endpoints, explanations, and a side-by-side N+1 comparison
+- **`/api/docs/`** — Swagger UI for the DRF endpoints
+- **`/admin/`** — Django admin for managing bookmarks
 
-Key files to explore:
+To see query optimization without the server:
+
+```bash
+python manage.py compare_queries
+```
+
+Key files:
 - `bookmarks/shapes.py` — the data shapes (static islands)
 - `bookmarks/views.py` — DRF views + plain Django views using Mantle
 - `bookmarks/models.py` — standard Django model

@@ -7,4 +7,7 @@ urlpatterns = [
     path("bookmarks/<int:pk>/", views.BookmarkDetail.as_view(), name="bookmark-detail"),
     path("bookmarks/nested/", views.bookmark_list_nested, name="bookmark-nested"),
     path("bookmarks/flat/", views.bookmark_list_flat, name="bookmark-flat"),
+    path("bookmarks/naive/", views.bookmark_list_naive, name="bookmark-naive"),
+    path("bookmarks/validated/", views.bookmark_create_validated, name="bookmark-validated"),
+    path("bookmarks/<int:pk>/update/", views.bookmark_update_validated, name="bookmark-update"),
 ]

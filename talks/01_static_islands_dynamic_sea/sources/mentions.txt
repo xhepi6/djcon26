@@ -1,2 +1,0 @@
-python library: django-mantle-drf
-web: noumenal.es/mantle
