@@ -1,0 +1,257 @@
+[Speaker 1]
+Everything part of the executive hearing Council. I also run a school company in Belgium in Hawaii, and we do a lot of language development. I also work with squads, which is a moving positive significance and made an entire team and going. Um.
+
+[Speaker 1]
+Um, but I, I do not, Tango, it's. It's a very good country word. The the tagline is very framework for frictionship deadline. It's 28 years old, almost 21 now. Um, it's got a bunch of features about the device. A lot of the packages? And one of the included countries is the General acne.
+
+[Speaker 1]
+Is one of the things that when you have never seen when you see it for the first time, it makes you do well. This this will come straight and thank God, you can get all these features. This is great, um? And I mean, there is. I said that come to China for the afternoon state for the community.
+
+[Speaker 1]
+Have you heard that before? Uh, I, I certainly heard it. And yes, they are doing this. One of the many things that threw me to change.
+
+[Speaker 1]
+I mean, it's really good in only for life for good. You have a full pregnancy place with identification authorization. Uh, you have filtering through hesitations you have. Probably, for if your domains control sort of. Enterprise kind of physical Erp here. Oh, John 80 percent is going to depressed. Pleasantly consultant, and here you already have a present bless their Sheltering and all that.
+
+[Speaker 1]
+So, yeah, that's great. No, of course! The the plushing in print class, uh, sometimes you mean things that are not native to to Django or to the Django Avenue. But in general, the return for the applications, and then the secret sense of Tango. So let's, let's use her fortification.
+
+[Speaker 1]
+You, you mean some some trigger drop, uh. In English, there is a package for that I, I can see the the other baggage. In the front row. So, yeah, let's. Let's put some heavy training ourselves and let's start. Then, I will also like play with them, like, uh, custom actions displayed on each row of the of yet that's.
+
+[Speaker 1]
+That's another thing that's got the packaging. Yeah, let's. Let's put a bit of salt in here. Um, I know, I, I want. Also, did you have a list of divine? There's also s. Again. For that, let's let's have some neurology things here. Um, and you know, I would also like to customize my form.
+
+[Speaker 1]
+I, I would like to like for us to be just two comments. All my friends, I just foreign. Um, yeah, let's. Let's add a bit of flour juice in here. And yeah, I also want you to customize such a lot guys. Um. So, um, maybe I was only translated robots.
+
+[Speaker 1]
+Yeah, the Germans. I live in culture. We have three official languages. Is something I need yeah. This, this was some more ingredients in the subject. This has some strawberry chat. Um, if if you've ever tried to make yourself something to eat? And you pay attention to all the ingredients that I tested right now.
+
+[Speaker 1]
+You're probably saying this. This is overcoming a horse. This is going to discuss it, and unfortunately, that's that's also what happens when you're trying to like two miniature property applications to to your legalizing someone flashes each other. They are loving people by people that that's something complicated, um. So, you might want to to try and do it yourself and you will be meeting the change with you.
+
+[Speaker 1]
+The change from you and those are hard with them. And there. There is a reason, uh, why they don't work to extend? Um, the truth is that the animal of us really built for General Django was built around the afternoon. That was, uh. D4 as we need for newspaper and the end in three days, getting 30 Sports Nintendo.
+
+[Speaker 1]
+January 15 years old, he has been with his enrollment. And for some reason, some people and always. Part of things to get into any secret organism genius and stagnated. World of Django itself was. Getting from the newer features some newer practices. Because I still was improving but more slow.
+
+[Speaker 1]
+Um, the fact is that all of the good practices that we use in compartment interface. This is not even exist when you open your surgery. If you take this, uh, things idea like that? They people like this, and there was no nothing building like that in the individual. Uh, emails.
+
+[Speaker 1]
+I found one inner in the language myself because.
+
+[Speaker 1]
+Only half of the strings of inflation in January. It doesn't respect.
+
+[Speaker 1]
+And the. But for coming yet. Is that really Tango is a framework and the Jaguar is a framework inside the framework that doesn't really work like the rest of the framework?
+
+[Speaker 1]
+Look, everyone who feels about it. I've talked to several of you. You told me of things that you're trying to do. And last year, we launched the new features Rico on GitHub, and last time I checked about the first of the new teachers request were for the admin, which, when you think that Yemen's only use language, this is huge, um, I following cards as well.
+
+[Speaker 1]
+Content UK wants to. And there's also on the new feature, issue 17. Just says, we take reality. So, let's look something else, and definitely like everything else that the the community has been trying to fix things somehow. For the past 15 years? Uh, my favorite, and doing that was genuine 2, with which was.
+
+[Speaker 1]
+Whereas on factories using the general generate use, because the area has all discouragement threat. But beside that. Tell himself as all this God to do forever. The the generic views and formulating two different versions of that. So gently, I'm going to try to take advantage of that, and it was like a project, unfortunately, in a dangerous because the the line, yes.
+
+[Speaker 1]
+And then there are tools like Cartelli and Jets, uh expressing company is the oldest tribe. As reinventing Japanese are mostly skins or templating over the edging, but they also add a few little bits.
+
+[Speaker 1]
+What bill, which is one of the dangerous giveness volcano, has its own happening that is not Tango end, and some some people are just taking out the the white teleport. Also, the white male admin they are using. For regular triangle projects. Um, I've given my own friends I have.
+
+[Speaker 1]
+I've lived here of skin adapter, which lets you use language framework to build a NPR and then explore that automatically to a Jesus content, and I'm still using that today. It's starting to implicit. But I, I'm still using that, but it still works, right? And. So, if we look at, I think I said that.
+
+[Speaker 1]
+When you stay at first? And 20 years ago.
+
+[Speaker 1]
+Mostly, the only one that was great. There was France that had a very interesting approach. Lavers uses. Little strings and you spray. There was a lot of people that other vegetarian for you, whichever uses inheritance instead, and there is no build generator for you, right on yourself.
+
+[Speaker 1]
+And those two were your only choices if you walk with some things.
+
+[Speaker 1]
+But yeah, then other frameworks go back, I don't know. And starting 15 years ago, not only have the famous Kota, but they started. Shipping with things that growing up apocalypse. No point of Tango, I mean, you have things like Livewire or turbo that, uh, add some land features to, uh, and interface as well now and red.
+
+[Speaker 1]
+There was hdmx. There is a filament there is all that, and there are some packages for typo that are trying to, uh, to bring those to Jango.
+
+[Speaker 1]
+And they all bringing a beautiful UI, but they also have a few tools to make the animal publication. And one thing about this is also that they are very open in the neighbors, then going. This would be more opinionated than it is now. Um and. So what? What does the future look like for, uh, for example, agony?
+
+[Speaker 1]
+Well, we're getting looking around and see what the others do. They also see what they don't do well and try to do better and like they did? Is that, uh, enlightenment should be extendable, composable, uh, jungle, language, and plugins?
+
+[Speaker 1]
+Um, but most importantly. The admin should be gentle and just gentle. It should not be something else that you have to learn on double jungle, and if you write something for your admin, you should be able to if somebody say, oh, I don't want this India after reliable Los Angeles.
+
+[Speaker 1]
+Movidado and use it as Island yet.
+
+[Speaker 1]
+Um, there's a lot of things that we can use greatly. In general, I mentioned there's generous views that you a lot of what you want to do when you do prayer. There's that your tissue, just the generation, uh, a big humidity to work to delete a few LED generic.
+
+[Speaker 1]
+Yeah, so that's, that's all prep. And we, we have that. Let's, um, Allison. Things to be composable not only fuse, but also things like permissions and things like that we, we just had a talk about authorization for very complex cases. And we have solutions to them, but there's also a lot of more similar cases.
+
+[Speaker 1]
+That Dragon does not provide things for your other packages. Injangles China was trigger, for example, is permission classes that are authenticated, right access, and green only. To everybody. Let's just point with them. Um.
+
+[Speaker 1]
+To avoid with flash. When you are trying to compose something like that, as you mentioned, when you're ready, you add two interpretations. Gambling was not really built at the store to, to access, to have to report it by edges, is something that has been drafting itself onto it. There's a lot of those packages that need to overwrite things like, like, template, and things like that.
+
+[Speaker 1]
+So, if we could have something that as being designed plugging first? In mind. That would be praised, but once again. The most important, and I'm not going to be standing up is to be able to use something you're better and not have. Um, to, to relearn a different framework with us.
+
+[Speaker 1]
+So, what would the original look like? Well, it would be based on the the January news.
+
+[Speaker 1]
+On top of that, we will build a UI layer. It's a matter of just finding a few dead plays that any you can find. We mentioned things that are about drug interview, so you know organizations. And here, I'm going to start talking about. So, if you haven't left yet, I did try to cancel for you, Adam, and.
+
+[Speaker 1]
+I don't know that at some point, I needed something to hold the recipe for every unit I wanted to have, and I've been calling those actions so, and actually say, hey, I have, if you and my view is going to be best of the next few? And it's going to make those permissions.
+
+[Speaker 1]
+That's, that's the really best of the of the action. Um, and that's what I'm talking about. This is extensible and composable. We need a plugging system. Um Simon Wilson. Fruit djp, which is the plug-in system based on planning, and I have used that as a base. And so he actually is a great place for the playing system to the top.
+
+[Speaker 1]
+Hi, I am a plugin, and for every. List action. I would like to register reason, and I would like to add search capabilities.
+
+[Speaker 1]
+And to bring all that together. You need a bit to do and a bit of view is in this business, the same, um, the symptoms. It doesn't the base triangular, I mean, II, which has a few seconds that just builds, uh, the cube, the final cubes as on demand.
+
+[Speaker 1]
+From what, because you have and the plugging the series? Um. And remember, this is how the jungle, I mean, works right now. This is how you design Enlightenment. A model app. This is straightforward in the security system. This is something that we should absolutely keep. So? This is what the same animals.
+
+[Speaker 1]
+I, if I go, I need to. It is not the difference. The only difference between the two 15. Everything that you have already learned for Thanksgiving Works in in the new technology. Few or example, I mean, good. The languages they can. I get to find something else, so this is Django Adventure.
+
+[Speaker 1]
+The first, you have another step of changing those inputs. Jack, right under, also unlocks a few features things that I really want to directly. So much, for example, for this is during the field name. I can give a color after and the field name of platform information, like it's important, related future, um, for my phone.
+
+[Speaker 1]
+Of just having a field set. I can have a layout of them. I have a second, can have many things inside. And the factory will just take all those conditions and use something. So it's, it's different to mention features, but maybe it's better to to see a direction. Uh, this year's gonna play it.
+
+[Speaker 1]
+Uh, so this this, like workplace, are just the skin or a gentle, I mean, but it's just it's an entirely different package. It's like, I mean that, um, and it works for, like the same features. Some of the features of Vietnamese right now, because, like all the futures in Japanese, um.
+
+[Speaker 1]
+Your basic usage. You can edit. Did. They're like, this is. This is something that you would expect. Um, right now. This is, uh, life mode. Not only, here is the right. One of the white background, the light mode also, and it's just single. I mean, good, with nothing else inside it.
+
+[Speaker 1]
+So you, you might have seen already that there was an exponent in their Village. There was Chase Lazarus for users. This is a new action that you can plug in and it, for example, that I can generally enjoy it. You have users you have a specific view just to change the password.
+
+[Speaker 1]
+While this can be this kind of directly in the list. Uh, no, of course, everything else, right? And, uh, if you look seriously that in front of you, you also have like this idea. This. This is a small things, but this shows that this is the. Uh, this is a regular futurist viewer.
+
+[Speaker 1]
+The dance feature that you would expect to work? Um, in a bit, we're going to be moving to dark mode, and in Gardena, this is not going to be just Django. I mean, this is going to be Django and industry definitions. So you might have. You might notice here that.
+
+[Speaker 1]
+We have a living picture, but and we have two Fields. We can have multiple speeds multiple times in the form and things like that, but we don't have more attachments like search and filters. Um, certainly, those are, you know, provided by flight. There was a plugin that usually some Django filters to.
+
+[Speaker 1]
+To to act like to add filters in the Philippines as well as sorting. Uh, searches out of the box, uh, you have also address for features that are not available straight under the license language, but you have a plugin for General Transit, which I have the language that let's have very complex and.
+
+[Speaker 1]
+Full figures at General France, so this here, you know, this kind of website you might not have noticed very difference between the form and the lights or the larva, and that's on purpose. But it's a whole different diagram using a whole different difference of basing. That's, uh, biases the frontier, and it's gender content to allow you to do things like, uh, initial displacements or affecting, like, out of the box.
+
+[Speaker 1]
+So, here we also getting nothing to see that we assume those who are provided by different plugins, but they work together. I am using search and filter right now at the same time, and those are together. Um, but with this one, you know, the lecture? Is there anything to something?
+
+[Speaker 1]
+So another function that is provided is, um. That will generate 50b files. Plugin. You can explore the course you, you can really. You don't have any surprises at all. How come you might do is do that. What you can do into the conversation you see the using the matter.
+
+[Speaker 1]
+You see, what picture is that? There is nothing. Um. That's, that was definitely. For example, how hot amino business products how they will know this is not going to break. Well, the best way to know that is to try to break things, and so I did that. Um, last year, I released a vanco arrest 2, which is a small rest.
+
+[Speaker 1]
+Baggage levels you to do rest with only dragon girls. And so I did a tiger needle pluggage from Quest 2, and this is this is the result. Uh, this is the contents, uh, JavaScript application that tells you the rest, uh, backhand that you just saw. And yeah, it just works, uh, didn't write anything.
+
+[Speaker 1]
+So I, I think this, this is.
+
+[Speaker 1]
+Um, there will already be a list of plugins at work.
+
+[Speaker 1]
+Um. You get friends without any risk because I mean the person outside of the ending and working girls. So, if you want to be able to drive or specific. Not only it's something that you cannot do in the action. Trade outside and do progressive management. Um, a lot of things will not require a lot of effort right here to prepare to be military, because here they will be provided directly.
+
+[Speaker 1]
+In general, I mean, foreign applications that don't do anything. But, yeah. Um, and then there was gradual, uh, years of effort. Um, what is going to be the hardest to integrate this trigonometer? Is that if you are modifying the template for the fuel to change you with your learner participation, that's going to be the largest to you to interview.
+
+[Speaker 1]
+But if? All you do is add an IGN. You are very important export that's not going to eat you much more.
+
+[Speaker 1]
+So it wasn't work right now. In four days. This is probably at least my house to. Keep working on the world's lighting, and then there's. I was still trying to colle. Data information from third party application and make sure that all the well-known and most popular communications.
+
+[Speaker 1]
+And then, if it goes, if this keeps swelling, there is a decline of community working to be able to support everybody who would want to make it to jungle. I mean, the it's not just, hey, here's something new packages from you, I don't know. Do whatever you want when we're going to need to support them, that we are going to need to help the users.
+
+[Speaker 1]
+And this brings me to to. The curve is. Everything in open source for a woman. Hey, you need more something, um? 10 years ago in Chicago said they didn't speak about a million dollars to revive IBM. Uh, I do attend that kind of work, but there are some solutions for that.
+
+[Speaker 1]
+There's things like the serial rejections, or, you know, that, who friends who give praise to open source and? Maintain or bring new Futures. So, firstly, I'm waiting to hear back from, and I know that, for event application, I put in there. Once I have no reply. I will submitting a grand application for other German super detective.
+
+[Speaker 1]
+Let's, uh, your problem, you, you can. Also, if you're saying, oh, this is something that I would like to use. You can also. Sponsor the project. Asking me to help you integrate to technology. Adding the computer. That didn't mean for for your project this.
+
+[Speaker 1]
+But so, what would go next? Well, we just saw that previous learned that permission for dating. So, more permissions integration is, uh, either stock market or the authentic organs, um, better keywords. So we make people build relationship is fighting, uh, international organization. I have a special time on that.
+
+[Speaker 1]
+Uh, definitely, and maybe zero problem. In any case with you. Please try this feedback, install it, go to the workshop tomorrow. If you have more details, uh, look like the project and see how this can solve your products. And, uh, thank you. I think we might still have a bit of time requests.
+
+[Speaker 1]
+To find more questions, and I guess there wasn't many, so we. Due two or three, and then as a lunch break afterwards. So, crushing for China?
+
+[Speaker 1]
+And they'll take us.
+
+[Speaker 2]
+Why is this city look like the old
+
+[Speaker 1]
+Man, uh, because I'm bigger, but uh, teams are our audience and everything else. The core of Daniel, I mean, is applying in Saudia, uh, so if you want, uh, to change your team, you're more than welcome to. Do that. Um. I've tried so far to use all this Humanity piano.
+
+[Speaker 1]
+I've played away from classes where I could, so it should be friendly, easy to skin it, but since this is still a project in an early stage, if you start working on a team today, you should expect things to break, and you have to keep working in it. But uh, teammates is a plugging.
+
+[Speaker 1]
+Like, any other virginity in in. Admin, and so if you don't like into thinking.
+
+[Speaker 1]
+Uh, hey, thanks!
+
+[Speaker 3]
+You achieved that we wanted to to use something like server sense events, maybe with signals so that people are looking at the admin. But, you know, live updates. This is something that would be possible. Or yes, there's something that will be possible.
+
+[Speaker 1]
+Hdmx and dynamic Bridge and visiting events and things like that was something that was on my mind since I started working on this project. Plugins may register a fun fact that items for different view types, and so you can also register media like cssgm and so on. And so what you would want to do for the register.
+
+[Speaker 1]
+I have a plugin that register some JavaScript and maybe, uh, on the screen to be able to give you our share notifications or whatever you want to do. So, one last question, and then some small announcements.
+
+[Speaker 3]
+And
+
+[Speaker 4]
+Hi, I also think this is amazing. I wanted to ask here if you try all the images or fields because maybe I missed the data level, for example, OS and widget or daytime computer. How does it handle those which from original genuine?
+
+[Speaker 1]
+So, um, here there were two different income. There was the the symbol.
+
+[Speaker 1]
+Uh, you can still customize this elegant or form behind it, so you can. You can customize the wages if you know, but if you really want really nice phones and a lot of other activities, I would strongly encourage to be using the plugging that use this gecko front set, which iko Frances comes with many very, uh, polish changes.
+
+[Speaker 1]
+Okay, thank you for the great talk and another round of applause.

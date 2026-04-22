@@ -1,0 +1,2 @@
+Django>=5.2
+django-admin-deux[full]>=0.1.6

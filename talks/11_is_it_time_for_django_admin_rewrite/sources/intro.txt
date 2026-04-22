@@ -1,0 +1,49 @@
+What if customizing Django's admin felt like writing any other Django view? Django-Admin-Deux aims at doing just that. It is not just a cosmetic refresh, it's a radically new approach relying on factory-generated views with a plugin-first design. Let's have a closer look! Workshop Structure:
+Architectural Foundations (20 min)
+View Factories: How Django-Admin-Deux generates views dynamically
+Action System: Actions are the recipes followed by view factories, including non-model-related ones like dashboards
+Plugin Hooks: what hooks are available?
+Dataclasses: Django-Admin-Deux uses a series of dataclasses to make extending it type-safe and practical, let's look at them
+A practical example: using Django-Admin-Deux (30 min)
+Simple (migration from the stock admin)
+Enhancements (list_display with enhanced features, Form Layout, Collections)
+Adding custom Views and Actions
+Permission system (from stock admin compatibility to composable permissions)
+Visibility, debugging and testing
+A more advanced example: let's build a plugin (30 min)
+Structure of a plugin
+Minimum requirements
+Enhancing existing Views and Actions
+Announcing and checking feature availability
+Prerequisites: - Familiarity with Django and the admin in general - Starter repository will be provided before the workshop
+
+What if customizing Django's admin felt like writing any other Django view? Not just a cosmetic refresh, but a radically new approach relying on Django itself, factory-generated views and with a plugin-first design. Talk Structure:
+The Problem Space (5 min)
+Django admin's 20-year legacy: what it got right and where it shows its age
+The extension dilemma: 3rd-party ecosystem and collisions between extensions
+Developer experience gap: different patterns for regular Django vs. admin
+Community feedback: recurring requests that would be hard to implement
+Architectural Foundations (7 min)
+View Factories: How views get generated dynamically
+Action System: Actions are the recipes followed by view factories
+Plugin Hooks: djp/pluggy integration and hook patterns
+Out-of-the-box enhancements
+Examples & Demo (8 min)
+Starting with familiar API: @register(Product) and list_display
+Customizing list_display
+Customizing layout
+Creating your own plugins
+Testing tools: BaseCRUDTestCase
+Demo (pre-recorded)
+Migration & Adoption (4 min)
+Running side-by-side with existing admin
+Early adopters (well-know projects that already have plugins)
+Extension compatibility matrix: no-effort, medium-effort, hard cases
+The Path Forward (2 min)
+What's next: roadmap and timeline
+Other potential benefits mid-term
+Call to action
+
+
+
+Talker: Emma Delescolle
