@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,15 +44,16 @@ TEMPLATES = [
     },
 ]
 
-# PostgreSQL required for this experiment (Hash, BRIN, ExclusionConstraint)
+# PostgreSQL required for this experiment (Hash, BRIN, ExclusionConstraint).
+# Defaults match the bundled docker-compose.yml (port 55434 on localhost).
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "shortener_experiment",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": os.environ.get("DB_NAME", "shortener"),
+        "USER": os.environ.get("DB_USER", "shortener"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "shortener"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("DB_PORT", "55434"),
     }
 }
 

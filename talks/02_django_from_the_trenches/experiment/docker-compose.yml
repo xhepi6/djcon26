@@ -1,0 +1,29 @@
+# PostgreSQL for the URL shortener / indexes demo.
+#
+# Port 55434 on the host so this doesn't collide with other talks' Postgres
+# instances or a locally-installed Postgres. The Django app runs on the host.
+#
+# Explicit project name so volumes don't collide with other talks' demos
+# that also live in an `experiment/` directory.
+name: djcon26_shortener
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: djcon26_shortener_db
+    environment:
+      POSTGRES_DB: shortener
+      POSTGRES_USER: shortener
+      POSTGRES_PASSWORD: shortener
+    ports:
+      - "55434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortener -d shortener"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  pgdata:

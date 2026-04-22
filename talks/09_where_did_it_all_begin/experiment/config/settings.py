@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,10 +43,16 @@ TEMPLATES = [
     },
 ]
 
+# PostgreSQL required for this experiment (transactions, savepoints, SELECT FOR UPDATE).
+# Defaults match the bundled docker-compose.yml (port 55435 on localhost).
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "subatomic_demo",
+        "NAME": os.environ.get("DB_NAME", "subatomic"),
+        "USER": os.environ.get("DB_USER", "subatomic"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "subatomic"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("DB_PORT", "55435"),
     }
 }
 

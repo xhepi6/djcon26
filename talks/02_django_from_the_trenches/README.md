@@ -274,12 +274,8 @@ The `experiment/` folder has a runnable Django project with all index types. **R
 
 ```bash
 cd experiment
+docker compose up -d                # starts PostgreSQL on port 55434
 pip install -r requirements.txt
-
-# Create the database
-createdb shortener_experiment
-
-# Setup and seed
 python manage.py migrate
 python manage.py seed_data          # 10k rows (or: seed_data 100000)
 

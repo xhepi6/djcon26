@@ -1,0 +1,29 @@
+# PostgreSQL for the django-subatomic transaction demo.
+#
+# Port 55435 on the host so this doesn't collide with other talks' Postgres
+# instances or a locally-installed Postgres. The Django app runs on the host.
+#
+# Explicit project name so volumes don't collide with other talks' demos
+# that also live in an `experiment/` directory.
+name: djcon26_subatomic
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: djcon26_subatomic_db
+    environment:
+      POSTGRES_DB: subatomic
+      POSTGRES_USER: subatomic
+      POSTGRES_PASSWORD: subatomic
+    ports:
+      - "55435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subatomic -d subatomic"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  pgdata:

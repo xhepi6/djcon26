@@ -146,8 +146,8 @@ The `experiment/` folder has a runnable Django project that demonstrates the dif
 
 ```bash
 cd experiment
+docker compose up -d                # starts PostgreSQL on port 55435
 pip install -r requirements.txt
-createdb subatomic_demo
 python manage.py migrate
 python manage.py seed_data
 ```
