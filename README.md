@@ -40,11 +40,15 @@ Pick any talk and:
 
 ```bash
 cd talks/XX_talk_name
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
 python manage.py runserver
 ```
+
+Each talk has its own dependencies. If you're exploring multiple talks, **create a separate venv per talk** so packages don't clash.
 
 Some talks include a `/test/` page with an interactive test panel that explains each endpoint and lets you run them from the browser.
 

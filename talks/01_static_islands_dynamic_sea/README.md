@@ -215,6 +215,8 @@ spec = to_spec(BookmarkData)
 This folder is a runnable Django project with all the examples above. Try it:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
