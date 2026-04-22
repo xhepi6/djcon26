@@ -1,0 +1,16 @@
+# Example of hash-pinned requirements.
+# Generated with: uv pip compile requirements.in --generate-hashes
+# Or manually with: pip hash <downloaded-wheel>
+#
+# Install with: pip install --require-hashes -r requirements-hashed.txt
+#
+# If the file on PyPI changes (even for the same version), installation fails.
+# This protects against:
+#   - Compromised maintainer accounts publishing tampered files
+#   - Man-in-the-middle attacks on package downloads
+#   - PyPI mirror tampering
+#
+# NOTE: These hashes are examples. Generate your own for your actual versions.
+
+django==5.2 \
+    --hash=sha256:REPLACE_WITH_REAL_HASH_FROM_pip_hash_OR_uv_pip_compile
