@@ -14,8 +14,8 @@ from incidents.operations import get_registry
 
 
 SYMBOL = {
-    OperationStatus.SUCCESS: "OK",
-    OperationStatus.FAILED:  "FAIL",
+    OperationStatus.SUCCESS: "✓",
+    OperationStatus.FAILED:  "✗",
     OperationStatus.SKIPPED: "-",
 }
 

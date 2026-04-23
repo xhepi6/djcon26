@@ -1,0 +1,30 @@
+# PostgreSQL for the caving-incidents pipeline demo.
+#
+# Only the database runs in docker — the Django app runs on the host so you
+# can iterate on management commands quickly. The port is exposed on 55433
+# (not the default 5432) so we don't collide with a local Postgres install
+# or talk 06's container (55432).
+#
+# Explicit project name so volumes don't collide with other talks' demos.
+name: djcon26_caving
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: djcon26_caving_db
+    environment:
+      POSTGRES_DB: caving
+      POSTGRES_USER: caving
+      POSTGRES_PASSWORD: caving
+    ports:
+      - "55433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caving -d caving"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  pgdata:

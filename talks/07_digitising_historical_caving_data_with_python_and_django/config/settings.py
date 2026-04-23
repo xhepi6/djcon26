@@ -1,9 +1,12 @@
 """
 Settings for the caving-incidents pipeline demo.
 
-SQLite by default -- no Docker needed.
+Single Postgres database. Connection defaults match the bundled
+docker-compose.yml (port 55433 on localhost). Override with env vars
+if you want to point at something else.
 """
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,8 +41,12 @@ TEMPLATES = [
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME", "caving"),
+        "USER": os.environ.get("DB_USER", "caving"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "caving"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("DB_PORT", "55433"),
     },
 }
 
