@@ -216,10 +216,9 @@ archiver.permissions.add(Permission.objects.get(codename="archive_book"))
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project that demonstrates the whole design: role hierarchy, closure cache, object-level assignments, just-in-time expiry, and custom perms.
+This folder is a runnable Django project that demonstrates the whole design: role hierarchy, closure cache, object-level assignments, just-in-time expiry, and custom perms.
 
 ```bash
-cd experiment
 pip install -r requirements.txt
 python manage.py migrate
 
@@ -230,7 +229,15 @@ python manage.py check_perm alice library.change_book                    # globa
 python manage.py check_perm bob   library.change_book --book "Dune"      # object-level
 python manage.py check_perm carol library.add_book   --sql               # print the SQL
 python manage.py demo_jit           # watch carol's librarian role expire in real time
+python manage.py runserver
 ```
+
+Routes:
+
+| Route | Description |
+|---|---|
+| `/` | Home page with command reference |
+| `/test/` | Interactive test panel — hierarchy + closure side-by-side, permission matrix with click-to-see-SQL, live JIT expiry widget |
 
 Canonical scenario (what `seed_data` builds):
 
@@ -298,6 +305,8 @@ Key files:
 - `rbac/closure.py` + `rbac/signals.py` — closure rebuilder, wired to `post_save`/`post_delete`
 - `library/models.py` — `Book` with custom `copy_book` / `archive_book` perms
 - `rbac/management/commands/` — `seed_data`, `show_rbac`, `demo_checks`, `check_perm`, `demo_jit`
+- `test_views.py` — test panel API endpoints (kept outside the rbac/ app)
+- `templates/test.html` — interactive test panel UI
 
 ## Key Takeaways
 

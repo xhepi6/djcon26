@@ -1,0 +1,658 @@
+● I'll tell you straight: yes, it's confusing. I just used it and here's what I saw:                                                                                                                                                                                             
+                                                                                                                                            
+  Concrete problems                                                                                                                                                                                                                                                              
+                                                                                                                                            
+  1. Red "MISMATCH" badges on carol's rows make it look broken. Carol's 10-second JIT window had already expired by the time I opened the page. The expected column is static (hardcoded to True), the actual column is live. The moment carol expires you get red MISMATCH —    
+  reader thinks "bug?" but it's just stale seed.                                                                                            
+  2. expected / actual / result is testing-speak, wrong mental model. For a demo panel there's no "expected" — the output is what you're learning. Three columns saying the same thing twice. Should be one column: result badge (green True / red False).                       
+  3. The SQL reveal is a wall of text. It's the headline insight of the talk — one query regardless of depth — but it renders as an unformatted one-line blob with 6 inline JOINs. No pretty-printing, no highlighting, no legend for what to notice.                            
+  4. Section 3 starts empty — carol.has_perm('library.add_book') = —. You have to click a button to make anything happen. The talk's most visual moment (the live flip) is hidden behind a click with no prompting.                                                              
+  5. No top-level framing. The page dives into "Role hierarchy → transitive closure" without ever saying what the whole panel is demonstrating or what the one sentence takeaway is.                                                                                             
+  6. Bob's two UserRole rows aren't connected to the matrix visually. The reader has to mentally link "bob: → viewer, → editor on Dune" to "bob can change_book on Dune but not Hyperion". A panel should draw that line.                                                        
+                                                                                                                                                                                                                                                                                 
+  Concrete fixes I'd make                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                 
+  a. Drop expected column, merge actual+result into one green/red badge. One column: what does has_perm return.                                                                                                                                                                  
+  b. Auto-reseed on page load so carol's 10s window is always fresh, or show a banner "carol expired — click Reset" when it's stale.        
+  c. Format the SQL (line breaks before FROM, INNER JOIN, WHERE, AND, LIMIT) and add a callout above it: "1 query, 6 joins. Same shape no matter how deep the hierarchy."                                                                                                        
+  d. Add an intro card at the top: 2 sentences + "click any row in section 2 to see the SQL".                                                                                                                                                                                    
+  e. Section 3: poll on load. Show carol's live result + countdown continuously. The "Expire in N" button just shortens the countdown — the page isn't idle.                                                                                                                     
+  f. Small legend under the closure table: "Depth-0 = self-link (R is its own ancestor at distance 0). That lets one join cover both 'this role' and 'any ancestor'."                                                                                                            
+  g. For bob, put a one-line annotation on his card: "two assignments → demo of object-level scope (see matrix rows for Dune / Hyperion)".                                                                                                                                       
+                                                                                                                                                                                                                                                                                 
+  Want me to apply all of these? (a) + (b) + (c) + (d) are the biggest wins and probably fix 80% of the confusion. (e) is the next most impactful. (f) + (g) are polish.                                                                                                         
+                                                                                                                                                                                                                                                                                 
+✻ Churned for 1m 53s · 1 shell still running                                                                                                                                                                                                                                     
+                                                                                                                                            
+❯ i want in this test view to actually explain the problem and the solution, also format those sqls showing up on row click                                                                                                                                                      
+                                                                                                                                                                                                                                                                                 
+  and also apply those fixes you mentioned                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                 
+● Clear. Let me implement all of it: new Problem/Solution card, drop expected/result, SQL formatter + keyword highlight, auto-reseed on load with extended carol window, live JIT polling, legend + bob annotation.                                                              
+                                                                                                                                                                                                                                                                               
+  First, update the reset endpoint to extend carol's window for the test panel (so rows stay live while reading):                                                                                                                                                                
+   
+● Update(test_views.py)                                                                                                                                                                                                                                                          
+  ⎿  Added 13 lines, removed 1 line                                                                                                         
+      187  @csrf_exempt                                                                                                                                                                                                                                                          
+      188  @require_POST
+      189  def reset_view(request):                                                                                                                                                                                                                                              
+      190 -    """Re-seed everything to the canonical scenario (idempotent)."""                                                                                                                                                                                           
+      190 +    """Re-seed everything and give carol a 60s window for the panel.                                                                                                                                                                                                  
+      191 +                                                                                                                                                                                                                                                               
+      192 +    `seed_data` (CLI) gives carol 10s — right for `demo_jit`. That's too                                                                                                                                                                                       
+      193 +    short for someone reading the page, so we extend it here.                                                                                                                                                                                                  
+      194 +    """                                                                                                                                                                                                                                                        
+      195      call_command("seed_data")
+      196 +    carol_role = (                                                                                                                                                                                                                                             
+      197 +        UserRole.objects                                                                                                                                                                                                                                       
+      198 +        .filter(user__username="carol", role__name="librarian")                                                                                                                                                                                                
+      199 +        .first()                                                                                                                                                                                                                                               
+      200 +    )                                                                                                                                                                                                                                                          
+      201 +    if carol_role is not None:                                                                                                                                                                                                                                 
+      202 +        carol_role.expires_at = timezone.now() + timezone.timedelta(seconds=60)                                                                                                                                                                                
+      203 +        carol_role.save()                                                                                                                                                                                                                                      
+      204      return JsonResponse({"ok": True})
+      205  
+      206  
+
+● Now rewrite the template — bigger but clearer:
+
+● Write(templates/test.html)                                                                                                                                                                                                                                                     
+  ⎿  Added 288 lines, removed 97 lines
+       8    * { box-sizing: border-box; margin: 0; padding: 0; }                                                                                                                                                                                                                 
+       9    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+      10    h1 { font-size: 1.5rem; margin-bottom: .25rem; }                                                                                                                                                                                                                     
+      11 -  .subtitle { color: #666; margin-bottom: 2rem; font-size: .9rem; }                                                                                                                                                                                             
+      11 +  .subtitle { color: #666; margin-bottom: 1.5rem; font-size: .9rem; }                                                                                                                                                                                                  
+      12    h2 { font-size: 1.1rem; margin-bottom: .75rem; color: #333; }                                                                   
+      13    h3 { font-size: .95rem; margin-bottom: .5rem; color: #444; }
+      14 +  h4 { font-size: .88rem; margin-bottom: .4rem; color: #555; font-weight: 600; }                                                                                                                                                                                
+      15  
+      16    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+      17    .concept { border-left: 4px solid #ddd; }
+      18    .concept-indigo { border-left-color: #6366f1; }
+      19    .concept-green  { border-left-color: #10b981; }
+      20    .concept-amber  { border-left-color: #f59e0b; }
+      21 +  .concept-slate  { border-left-color: #64748b; }                                                                                                                                                                                                               
+      22  
+      23    .concept .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+      24    .concept .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+      25    .concept-indigo .number { background: #6366f1; }
+      26    .concept-green  .number { background: #10b981; }
+      27    .concept-amber  .number { background: #f59e0b; }
+      28 +  .concept-slate  .number { background: #64748b; }                                                                                                                                                                                                              
+      29    .concept .header h2 { margin: 0; font-size: 1.05rem; }
+      30  
+      31    .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+      32    .explanation strong { color: #1a1a1a; }
+      33    .explanation code { background: #eef; padding: 1px 5px; border-radius: 3px; font-size: .82rem; }
+      34  
+      35 +  .problem-solution { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }                                                                                                                                                                               
+      36 +  @media (max-width: 820px) { .problem-solution { grid-template-columns: 1fr; } }                                                                                                                                                                               
+      37 +  .ps-col { padding: 1rem; border-radius: 6px; font-size: .87rem; }                                                                                                                                                                                             
+      38 +  .ps-problem { background: #fef2f2; border: 1px solid #fecaca; }                                                                                                                                                                                               
+      39 +  .ps-solution { background: #ecfdf5; border: 1px solid #a7f3d0; }                                                                                                                                                                                              
+      40 +  .ps-col h4 { font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; }                                                                                                                                                     
+      41 +  .ps-problem h4 { color: #991b1b; }                                                                                                                                                                                                                            
+      42 +  .ps-solution h4 { color: #065f46; }                                                                                                                                                                                                                           
+      43 +  .ps-col ul { padding-left: 1.1rem; margin-top: .25rem; }                                                                                                                                                                                                      
+      44 +  .ps-col li { margin-bottom: .3rem; }                                                                                                                                                                                                                          
+      45 +  .ps-col code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; font-size: .8rem; }                                                                                                                                                         
+      46 +                                                                                                                                                                                                                                                                
+      47    .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; align-items: center; }
+      48    button, input[type=number] { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+      49    input[type=number] { cursor: text; width: 5.5rem; }
+      50    button:hover { background: #f0f0f0; }
+      36 -  button.primary { background: #6366f1; color: #fff; border-color: #6366f1; }                                                                                                                                                                                   
+      37 -  button.primary:hover { background: #4f46e5; }                                                                                                                                                                                                                 
+      51    button.red { background: #ef4444; color: #fff; border-color: #ef4444; }
+      52    button.red:hover { background: #dc2626; }
+      53    button.amber { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+     ...
+      67    .badge { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+      68    .b-true  { background: #d1e7dd; color: #0f5132; }
+      69    .b-false { background: #f8d7da; color: #842029; }
+      57 -  .b-match { background: #d1e7dd; color: #0f5132; }                                                                                                                                                                                                             
+      58 -  .b-mismatch { background: #f8d7da; color: #842029; }                                                                                                                                                                                                          
+      70 +  .b-scope { background: #fff3cd; color: #856404; }                                                                                                                                                                                                             
+      71 +  .b-super { background: #e0e7ff; color: #3730a3; }                                                                                                                                                                                                             
+      72    .b-expired { background: #f8d7da; color: #842029; }
+      73    .b-active  { background: #d1e7dd; color: #0f5132; }
+      61 -  .b-scope   { background: #fff3cd; color: #856404; }                                                                                                                                                                                                           
+      62 -  .b-super   { background: #e0e7ff; color: #3730a3; }                                                                                                                                                                                                           
+      74  
+      75    /* Tree */
+      76    .tree { font-size: .85rem; }
+     ...
+       82    .tree .perms code { background: #eef; padding: 0 4px; border-radius: 3px; margin-right: 3px; font-size: .76rem; }
+       83  
+       84    /* Closure table */
+       74 -  .closure-table { max-height: 320px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; }                                                                                                                                                          
+       75 -  .closure-table table { font-size: .78rem; }                                                                                                                                                                                                                  
+       76 -  .closure-table .depth-0 td { color: #999; font-style: italic; }                                                                                                                                                                                              
+       85 +  .closure-wrap { max-height: 320px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; }                                                                                                                                                           
+       86 +  .closure-wrap table { font-size: .78rem; }                                                                                                                                                                                                                   
+       87 +  .closure-wrap .depth-0 td { color: #999; font-style: italic; }                                                                                                                                                                                               
+       88 +  .legend { font-size: .76rem; color: #666; margin-top: .4rem; line-height: 1.4; }                                                                                                                                                                             
+       89  
+       90    /* SQL display */
+       79 -  pre { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .7rem .85rem; overflow-x: auto; font-size: .76rem; line-height: 1.5; margin: .25rem 0; white-space: pre-wrap; }                                                                      
+       91 +  .sql-hint { font-size: .82rem; color: #3730a3; background: #eef2ff; padding: .5rem .75rem; border-radius: 6px; margin-bottom: .5rem; border: 1px solid #c7d2fe; }                                                                                            
+       92 +  .sql-summary { font-size: .8rem; color: #444; margin: .4rem 0; }                                                                                                                                                                                             
+       93 +  .sql-summary strong { color: #111; }                                                                                                                                                                                                                         
+       94 +  pre.sql { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .7rem .9rem; overflow-x: auto; font-size: .76rem; line-height: 1.55; margin: .25rem 0; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }          
+       95 +  pre.sql .kw { color: #569cd6; font-weight: 600; }                                                                                                                                                                                                            
+       96 +  pre.sql .fn { color: #dcdcaa; }                                                                                                                                                                                                                              
+       97 +  pre.sql .str { color: #ce9178; }                                                                                                                                                                                                                             
+       98 +  pre.sql .num { color: #b5cea8; }                                                                                                                                                                                                                             
+       99 +  pre.sql .id  { color: #9cdcfe; }                                                                                                                                                                                                                             
+      100  
+      101    /* JIT widget */
+       82 -  .jit-status { font-family: monospace; font-size: 1.25rem; padding: .75rem 1rem; border-radius: 6px; background: #f8f9fa; border: 1px solid #e0e0e0; display: flex; align-items: center; gap: 1rem; }                                                         
+      102 +  .jit-status { font-family: monospace; font-size: 1.1rem; padding: .8rem 1rem; border-radius: 6px; background: #f8f9fa; border: 1px solid #e0e0e0; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }                                          
+      103    .jit-status .big { font-size: 1.4rem; font-weight: 700; }
+      104    .jit-status.is-active { background: #d1e7dd; border-color: #badbcc; color: #0f5132; }
+      105    .jit-status.is-expired { background: #f8d7da; border-color: #f5c2c7; color: #842029; }
+      106 +  .jit-status.is-idle { color: #666; }                                                                                                                                                                                                                         
+      107  
+      108    .users-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .75rem; margin-top: .5rem; }
+      109    .user-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: .6rem .75rem; background: #fafafa; font-size: .83rem; }
+     ...
+      111    .user-card .u-name .badge { margin-left: .4rem; font-weight: 600; }
+      112    .user-card .a { display: block; color: #444; padding-left: .2rem; }
+      113    .user-card .a .role { font-weight: 600; color: #3730a3; }
+      114 +  .user-card .note { display: block; font-size: .76rem; color: #6b7280; font-style: italic; margin-top: .3rem; padding-left: .2rem; }                                                                                                                          
+      115  
+       94 -  .toast { position: fixed; top: 1rem; right: 1rem; background: #1a1a1a; color: #fff; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; opacity: 0; transition: opacity .2s; }                                                                       
+      116 +  .toast { position: fixed; top: 1rem; right: 1rem; background: #1a1a1a; color: #fff; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; opacity: 0; transition: opacity .2s; z-index: 100; }                                                         
+      117    .toast.show { opacity: .95; }
+      118  
+      119    code.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+     ...
+      123    <h1>Talk 08 — Role-Based Access Control in Django</h1>
+      124    <p class="subtitle">Role hierarchy + transitive-closure cache + a single-query <code class="mono">has_perm</code>.</p>
+      125  
+      104 -  <div class="card">                                                                                                                                                                                                                                           
+      126 +  <!-- INTRO: what you're looking at -->                                                                                                                                                                                                                       
+      127 +  <div class="card concept concept-slate">                                                                                                                                                                                                                     
+      128 +    <div class="header">                                                                                                                                                                                                                                       
+      129 +      <div class="number">i</div>                                                                                                                                                                                                                              
+      130 +      <h2>What you're looking at</h2>                                                                                                                                                                                                                          
+      131 +    </div>                                                                                                                                                                                                                                                     
+      132 +    <div class="explanation" style="margin-bottom:.75rem;">                                                                                                                                                                                                    
+      133 +      A live demo of authentik's RBAC design. A 4-role hierarchy, one closure-table cache, a custom                                                                                                                                                            
+      134 +      authorization backend. Every permission check collapses to <strong>one SQL query</strong> —                                                                                                                                                              
+      135 +      regardless of how deep the role tree goes.                                                                                                                                                                                                               
+      136 +      <br>                                                                                                                                                                                                                                                     
+      137 +      <strong>Click any row in the permission matrix</strong> to see the actual query Django ran.                                                                                                                                                              
+      138 +      <strong>Scroll to section 3</strong> to watch just-in-time expiry flip a check from True to False live.                                                                                                                                                  
+      139 +    </div>                                                                                                                                                                                                                                                     
+      140      <div class="actions">
+      141        <button class="red" onclick="doReset()">Reset &amp; re-seed</button>
+      142        <span id="meta" style="color:#666; font-size:.8rem;"></span>
+      143      </div>
+      144    </div>
+      145  
+      146 +  <!-- PROBLEM / SOLUTION -->                                                                                                                                                                                                                                  
+      147 +  <div class="card">                                                                                                                                                                                                                                           
+      148 +    <h2 style="margin-bottom:.75rem;">The problem &amp; the solution</h2>                                                                                                                                                                                      
+      149 +    <div class="problem-solution">                                                                                                                                                                                                                             
+      150 +      <div class="ps-col ps-problem">                                                                                                                                                                                                                          
+      151 +        <h4>The problem</h4>                                                                                                                                                                                                                                   
+      152 +        <ul>                                                                                                                                                                                                                                                   
+      153 +          <li>Django ships <strong>model-level</strong> permissions: <code>user.has_perm("app.change_book")</code> — granted via user or group.</li>                                                                                                           
+      154 +          <li><strong>django-guardian</strong> adds <strong>object-level</strong> permissions on top (generic FK to the target row).</li>                                                                                                                      
+      155 +          <li>Neither handles: <strong>group hierarchy</strong> (permissions flow down a parent→child chain), <strong>just-in-time</strong> access (grant admin for an hour), <strong>delegation</strong> (share my access with Bob), or <strong>custom non-CRU
+          +D</strong> permissions (<code>copy_book</code>, <code>approve_payout</code>).</li>                                                                                                                                                                             
+      156 +          <li>Bolting a Role layer on top of Guardian means every check walks <em>user → group → parent → ... → role → permission</em> — <strong>N queries per check</strong>. Fine in demos, dead in prod.</li>                                               
+      157 +        </ul>                                                                                                                                                                                                                                                  
+      158 +      </div>                                                                                                                                                                                                                                                   
+      159 +      <div class="ps-col ps-solution">                                                                                                                                                                                                                         
+      160 +        <h4>The solution</h4>                                                                                                                                                                                                                                  
+      161 +        <ul>                                                                                                                                                                                                                                                   
+      162 +          <li><strong>Strip Django's authz half</strong> — <code>ModelBackendNoAuthz</code> keeps <code>authenticate()</code> but zeroes every <code>has_perm</code> / <code>get_*_permissions</code> so the chain always falls through.</li>                  
+      163 +          <li><strong>One custom backend</strong> (<code>RBACBackend</code>) answers <code>has_perm</code> directly against RBAC tables.</li>                                                                                                                  
+      164 +          <li><strong>Transitive-closure cache</strong>: one row per <code>(ancestor, descendant, depth)</code>, including self-links at depth 0. A permission check joins through it — <strong>one query, any depth</strong>.</li>                            
+      165 +          <li>Object scope &amp; JIT are just columns on <code>UserRole</code>: <code>content_type</code>/<code>object_id</code> for the object, <code>expires_at</code> for JIT. Custom perms are plain <code>Meta.permissions</code>.</li>                   
+      166 +        </ul>                                                                                                                                                                                                                                                  
+      167 +      </div>                                                                                                                                                                                                                                                   
+      168 +    </div>                                                                                                                                                                                                                                                     
+      169 +  </div>                                                                                                                                                                                                                                                       
+      170 +                                                                                                                                                                                                                                                               
+      171    <!-- SECTION 1: Hierarchy + Closure -->
+      172    <div class="card concept concept-indigo">
+      173      <div class="header">
+     ...
+      175        <h2>Role hierarchy → transitive closure</h2>
+      176      </div>
+      177      <div class="explanation">
+      118 -      The <strong>hierarchy</strong> is a DAG of <code>Role.parent</code> edges. The                                                                                                                                                                           
+      119 -      <strong>closure</strong> is the cache: one row per <code>(ancestor, descendant, depth)</code>,                                                                                                                                                           
+      120 -      including depth-0 self-links. Any <code>has_perm</code> query joins through the closure,                                                                                                                                                                 
+      121 -      so depth disappears from the problem.                                                                                                                                                                                                                    
+      178 +      The <strong>hierarchy</strong> (left) is a DAG of <code>Role.parent</code> edges.                                                                                                                                                                        
+      179 +      The <strong>closure</strong> (right) is the cache: every ancestor-descendant pair the                                                                                                                                                                    
+      180 +      hierarchy implies, plus the depth between them. A permission check joins through this                                                                                                                                                                    
+      181 +      table, so <em>depth disappears from the problem</em>.                                                                                                                                                                                                    
+      182      </div>
+      183      <div class="two-col">
+      184        <div>
+     ...
+      187        </div>
+      188        <div>
+      189          <h3>RoleAncestry (closure) — <span id="closure-count">0</span> rows</h3>
+      130 -        <div class="closure-table">                                                                                                                                                                                                                            
+      190 +        <div class="closure-wrap">                                                                                                                                                                                                                             
+      191            <table id="closure-table">
+      192              <thead><tr><th>ancestor</th><th>descendant</th><th>depth</th></tr></thead>
+      193              <tbody></tbody>
+      194            </table>
+      195          </div>
+      196 +        <p class="legend">                                                                                                                                                                                                                                     
+      197 +          <strong>Depth-0 rows (italicized)</strong> are self-links — "role R is its own                                                                                                                                                                       
+      198 +          ancestor at distance 0". They let the same join cover both <em>"this role"</em>                                                                                                                                                                      
+      199 +          and <em>"any ancestor of this role"</em>. Rebuilt on every                                                                                                                                                                                           
+      200 +          <code>Role.save()</code> / <code>Role.delete()</code> via signal. In production                                                                                                                                                                      
+      201 +          with Postgres: a materialized view + <code>pgtrigger</code>.                                                                                                                                                                                         
+      202 +        </p>                                                                                                                                                                                                                                                   
+      203        </div>
+      204      </div>
+      205    </div>
+     ...
+      211        <h2>Users, assignments &amp; the permission matrix</h2>
+      212      </div>
+      213      <div class="explanation">
+      147 -      <strong>UserRole</strong> binds a user to a role — optionally scoped to one object                                                                                                                                                                       
+      148 -      (<code>content_type</code> + <code>object_id</code>) and/or time-bounded                                                                                                                                                                                 
+      149 -      (<code>expires_at</code>). Click any row in the matrix to see the SQL that Django                                                                                                                                                                        
+      150 -      generated to answer the check.                                                                                                                                                                                                                           
+      214 +      Each <strong>UserRole</strong> row binds one user to one role — optionally scoped to                                                                                                                                                                     
+      215 +      a single object (<code>content_type</code> + <code>object_id</code>) and/or time-bounded                                                                                                                                                                 
+      216 +      (<code>expires_at</code>). Note bob: he has <em>two</em> UserRole rows — one global                                                                                                                                                                      
+      217 +      <code>viewer</code>, and one <code>editor</code> scoped to "Dune". That produces the                                                                                                                                                                     
+      218 +      split result you see in the matrix: he can change Dune but not Hyperion.                                                                                                                                                                                 
+      219      </div>
+      220  
+      153 -    <h3>Users</h3>                                                                                                                                                                                                                                             
+      221 +    <h3>Users &amp; their assignments</h3>                                                                                                                                                                                                                     
+      222      <div class="users-list" id="users"></div>
+      223  
+      156 -    <h3 style="margin-top:1rem;">Permission matrix</h3>                                                                                                                                                                                                        
+      224 +    <h3 style="margin-top:1.25rem;">Permission matrix</h3>                                                                                                                                                                                                     
+      225 +    <div class="sql-hint">                                                                                                                                                                                                                                     
+      226 +      → Click any row to run the check live and see <strong>the single SQL query</strong>                                                                                                                                                                      
+      227 +      Django executed. Same shape for every row, regardless of hierarchy depth.                                                                                                                                                                                
+      228 +    </div>                                                                                                                                                                                                                                                     
+      229      <table id="matrix-table">
+      230        <thead>
+      231          <tr>
+      160 -          <th>user</th><th>perm</th><th>object</th>                                                                                                                                                                                                            
+      161 -          <th>expected</th><th>actual</th><th>result</th><th>via</th>                                                                                                                                                                                          
+      232 +          <th>user</th><th>perm</th><th>object</th><th>result</th><th>via (why)</th>                                                                                                                                                                           
+      233          </tr>
+      234        </thead>
+      235        <tbody></tbody>
+      236      </table>
+      166 -    <p style="margin-top:.4rem; font-size:.78rem; color:#666;">                                                                                                                                                                                                
+      167 -      Row click → run the check live, show the SQL.                                                                                                                                                                                                            
+      168 -    </p>                                                                                                                                                                                                                                                       
+      237    </div>
+      238  
+      239    <!-- SECTION 3: JIT expiry -->
+      240    <div class="card concept concept-amber">
+      241      <div class="header">
+      242        <div class="number">3</div>
+      175 -      <h2>Just-in-time access</h2>                                                                                                                                                                                                                             
+      243 +      <h2>Just-in-time access, live</h2>                                                                                                                                                                                                                       
+      244      </div>
+      245      <div class="explanation">
+      178 -      <strong>One column</strong> — <code>UserRole.expires_at</code> — plus                                                                                                                                                                                    
+      179 -      <code>Q(expires_at__isnull=True) | Q(expires_at__gt=now)</code> in the check.                                                                                                                                                                            
+      180 -      Watch carol's <code>library.add_book</code> flip from True to False.                                                                                                                                                                                     
+      246 +      JIT is <strong>one column</strong> — <code>UserRole.expires_at</code> — plus the                                                                                                                                                                         
+      247 +      predicate <code>Q(expires_at__isnull=True) | Q(expires_at__gt=now)</code> in the                                                                                                                                                                         
+      248 +      <code>has_perm</code> query. The panel is polling carol's permission every second.                                                                                                                                                                       
+      249 +      Use the button below to set a new expiry and watch the badge flip from green True                                                                                                                                                                        
+      250 +      to red False. Same query both times — the only thing that changes is the timestamp.                                                                                                                                                                      
+      251      </div>
+      252      <div class="actions">
+      253        <label for="jit-seconds" style="font-size:.85rem; color:#444;">Expire in</label>
+      254        <input id="jit-seconds" type="number" min="1" max="60" value="5">
+      255        <span style="font-size:.85rem; color:#444;">seconds</span>
+      186 -      <button class="amber" onclick="startJit()">Expire carol's librarian</button>                                                                                                                                                                             
+      187 -      <button onclick="stopJit()" id="jit-stop" disabled>Stop polling</button>                                                                                                                                                                                 
+      256 +      <button class="amber" onclick="startJit()">Expire carol's librarian now</button>                                                                                                                                                                         
+      257      </div>
+      189 -    <div class="jit-status" id="jit-status">                                                                                                                                                                                                                   
+      190 -      <span>carol.has_perm('library.add_book') =</span>                                                                                                                                                                                                        
+      191 -      <span class="big" id="jit-result">—</span>                                                                                                                                                                                                               
+      192 -      <span id="jit-info" style="font-size:.85rem; color:#666;"></span>                                                                                                                                                                                        
+      258 +    <div class="jit-status is-idle" id="jit-status">                                                                                                                                                                                                           
+      259 +      <span><code class="mono">carol.has_perm('library.add_book')</code> =</span>                                                                                                                                                                              
+      260 +      <span class="big" id="jit-result">…</span>                                                                                                                                                                                                               
+      261 +      <span id="jit-info" style="font-size:.85rem; color:inherit; opacity:.85;"></span>                                                                                                                                                                        
+      262      </div>
+      263    </div>
+      264  
+     ...
+      276  const fmtBool = (b) => `<span class="badge ${b ? 'b-true' : 'b-false'}">${b}</span>`;
+      277  
+      278  let jitTimer = null;
+      279 +let jitExpiresAt = null;   // Date | null                                                                                                                                                                                                                      
+      280  
+      281 +// ---------- SQL pretty-print ----------                                                                                                                                                                                                                      
+      282 +const SQL_KEYWORDS = [                                                                                                                                                                                                                                         
+      283 +  "SELECT", "FROM", "INNER JOIN", "LEFT OUTER JOIN", "LEFT JOIN", "RIGHT JOIN",                                                                                                                                                                                
+      284 +  "CROSS JOIN", "WHERE", "AND", "OR", "GROUP BY", "ORDER BY", "HAVING", "LIMIT",                                                                                                                                                                               
+      285 +  "OFFSET", "UNION", "UNION ALL", "ON",                                                                                                                                                                                                                        
+      286 +];                                                                                                                                                                                                                                                             
+      287 +const INLINE_KEYWORDS = new Set(["ON"]);  // don't break to new line, just highlight                                                                                                                                                                           
+      288 +                                                                                                                                                                                                                                                               
+      289 +function formatSql(sql) {                                                                                                                                                                                                                                      
+      290 +  const src = sql.trim();                                                                                                                                                                                                                                      
+      291 +  let out = "";                                                                                                                                                                                                                                                
+      292 +  let depth = 0;                                                                                                                                                                                                                                               
+      293 +  let i = 0;                                                                                                                                                                                                                                                   
+      294 +  const atWordStart = () => i === 0 || /[^A-Za-z0-9_]/.test(src[i - 1]);                                                                                                                                                                                       
+      295 +  const matchKeyword = () => {                                                                                                                                                                                                                                 
+      296 +    if (!atWordStart()) return null;                                                                                                                                                                                                                           
+      297 +    for (const kw of SQL_KEYWORDS) {                                                                                                                                                                                                                           
+      298 +      const len = kw.length;                                                                                                                                                                                                                                   
+      299 +      if (src.slice(i, i + len).toUpperCase() === kw &&                                                                                                                                                                                                        
+      300 +          (i + len >= src.length || /[^A-Za-z0-9_]/.test(src[i + len]))) {                                                                                                                                                                                     
+      301 +        return kw;                                                                                                                                                                                                                                             
+      302 +      }                                                                                                                                                                                                                                                        
+      303 +    }                                                                                                                                                                                                                                                          
+      304 +    return null;                                                                                                                                                                                                                                               
+      305 +  };                                                                                                                                                                                                                                                           
+      306 +  while (i < src.length) {                                                                                                                                                                                                                                     
+      307 +    const ch = src[i];                                                                                                                                                                                                                                         
+      308 +    if (ch === "(") { out += "("; depth++; i++; continue; }                                                                                                                                                                                                    
+      309 +    if (ch === ")") { out += ")"; depth = Math.max(0, depth - 1); i++; continue; }                                                                                                                                                                             
+      310 +    if (ch === "'") {                                                                                                                                                                                                                                          
+      311 +      const end = src.indexOf("'", i + 1);                                                                                                                                                                                                                     
+      312 +      out += src.slice(i, end === -1 ? src.length : end + 1);                                                                                                                                                                                                  
+      313 +      i = end === -1 ? src.length : end + 1;                                                                                                                                                                                                                   
+      314 +      continue;                                                                                                                                                                                                                                                
+      315 +    }                                                                                                                                                                                                                                                          
+      316 +    if (ch === '"') {                                                                                                                                                                                                                                          
+      317 +      const end = src.indexOf('"', i + 1);                                                                                                                                                                                                                     
+      318 +      out += src.slice(i, end === -1 ? src.length : end + 1);                                                                                                                                                                                                  
+      319 +      i = end === -1 ? src.length : end + 1;                                                                                                                                                                                                                   
+      320 +      continue;                                                                                                                                                                                                                                                
+      321 +    }                                                                                                                                                                                                                                                          
+      322 +    const kw = matchKeyword();                                                                                                                                                                                                                                 
+      323 +    if (kw && !INLINE_KEYWORDS.has(kw)) {                                                                                                                                                                                                                      
+      324 +      if (out && !out.endsWith("\n") && out.trim() !== "") out += "\n";                                                                                                                                                                                        
+      325 +      out += "  ".repeat(depth) + kw.toUpperCase();                                                                                                                                                                                                            
+      326 +      i += kw.length;                                                                                                                                                                                                                                          
+      327 +      continue;                                                                                                                                                                                                                                                
+      328 +    }                                                                                                                                                                                                                                                          
+      329 +    if (ch === " " && out.endsWith("\n")) { i++; continue; }                                                                                                                                                                                                   
+      330 +    out += ch;                                                                                                                                                                                                                                                 
+      331 +    i++;                                                                                                                                                                                                                                                       
+      332 +  }                                                                                                                                                                                                                                                            
+      333 +  // Collapse runs of spaces (but keep newlines)                                                                                                                                                                                                               
+      334 +  return out.replace(/[ \t]+/g, " ").replace(/ *\n */g, (m) =>                                                                                                                                                                                                 
+      335 +    "\n" + m.replace(/[^\s]/g, "").match(/ */g)[0]                                                                                                                                                                                                             
+      336 +  ).replace(/\n +/g, (m) => m).replace(/ +\n/g, "\n").trim();                                                                                                                                                                                                  
+      337 +}                                                                                                                                                                                                                                                              
+      338 +                                                                                                                                                                                                                                                               
+      339 +function highlightSql(formatted) {                                                                                                                                                                                                                             
+      340 +  const escaped = e(formatted);                                                                                                                                                                                                                                
+      341 +  const kwRe = /\b(SELECT|FROM|INNER JOIN|LEFT OUTER JOIN|LEFT JOIN|RIGHT JOIN|CROSS JOIN|WHERE|AND|OR|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|UNION ALL|UNION|ON|IN|IS|NULL|AS|NOT)\b/g;                                                                        
+      342 +  let out = escaped.replace(kwRe, '<span class="kw">$1</span>');                                                                                                                                                                                               
+      343 +  // strings                                                                                                                                                                                                                                                   
+      344 +  out = out.replace(/&#39;[^&]*?&#39;/g, (m) => `<span class="str">${m}</span>`);                                                                                                                                                                              
+      345 +  // numbers                                                                                                                                                                                                                                                   
+      346 +  out = out.replace(/\b\d+\b/g, (m) => `<span class="num">${m}</span>`);                                                                                                                                                                                       
+      347 +  // double-quoted identifiers (Django uses them in Postgres/SQLite)                                                                                                                                                                                           
+      348 +  out = out.replace(/&quot;[^&]*?&quot;/g, (m) => `<span class="id">${m}</span>`);                                                                                                                                                                             
+      349 +  return out;                                                                                                                                                                                                                                                  
+      350 +}                                                                                                                                                                                                                                                              
+      351 +                                                                                                                                                                                                                                                               
+      352 +function countJoins(formatted) {                                                                                                                                                                                                                               
+      353 +  const m = formatted.match(/\b(INNER|LEFT|RIGHT|CROSS)?\s*(OUTER)?\s*JOIN\b/gi);                                                                                                                                                                              
+      354 +  return m ? m.length : 0;                                                                                                                                                                                                                                     
+      355 +}                                                                                                                                                                                                                                                              
+      356 +                                                                                                                                                                                                                                                               
+      357 +// ---------- state ----------                                                                                                                                                                                                                                 
+      358  function toast(msg) {
+      359    const t = $("#toast");
+      360    t.textContent = msg;
+     ...
+      362    setTimeout(() => t.classList.remove("show"), 1800);
+      363  }
+      364  
+      218 -async function loadState() {                                                                                                                                                                                                                                   
+      219 -  const res = await fetch("/test/api/state/");                                                                                                                                                                                                                 
+      220 -  const data = await res.json();                                                                                                                                                                                                                               
+      365 +async function loadState(autoReseed = true) {                                                                                                                                                                                                                  
+      366 +  let res = await fetch("/test/api/state/");                                                                                                                                                                                                                   
+      367 +  let data = await res.json();                                                                                                                                                                                                                                 
+      368 +                                                                                                                                                                                                                                                               
+      369 +  if (autoReseed) {                                                                                                                                                                                                                                            
+      370 +    // If anyone's JIT role has already expired, re-seed once so the matrix                                                                                                                                                                                    
+      371 +    // stays live. This only affects carol in the seeded scenario.                                                                                                                                                                                             
+      372 +    const anyExpired = data.users.some((u) =>                                                                                                                                                                                                                  
+      373 +      u.assignments.some((a) => a.expired)                                                                                                                                                                                                                     
+      374 +    );                                                                                                                                                                                                                                                         
+      375 +    if (anyExpired) {                                                                                                                                                                                                                                          
+      376 +      await fetch("/test/api/reset/", { method: "POST" });                                                                                                                                                                                                     
+      377 +      toast("Re-seeded — carol's JIT window had expired.");                                                                                                                                                                                                    
+      378 +      res = await fetch("/test/api/state/");                                                                                                                                                                                                                   
+      379 +      data = await res.json();                                                                                                                                                                                                                                 
+      380 +    }                                                                                                                                                                                                                                                          
+      381 +  }                                                                                                                                                                                                                                                            
+      382 +                                                                                                                                                                                                                                                               
+      383    renderTree(data.tree);
+      384    renderClosure(data.closure);
+      385    renderUsers(data.users);
+      386    renderMatrix(data.matrix);
+      387    $("#meta").textContent =
+      388      `${data.users.length} users · ${data.closure.length} closure rows · ${data.books.length} books`;
+      389 +                                                                                                                                                                                                                                                               
+      390 +  // Reset the JIT widget's known expiry to carol's current one and start polling.                                                                                                                                                                             
+      391 +  const carol = data.users.find((u) => u.username === "carol");                                                                                                                                                                                                
+      392 +  const carolJit = carol && carol.assignments.find((a) => a.expires_at);                                                                                                                                                                                       
+      393 +  jitExpiresAt = carolJit ? new Date(carolJit.expires_at) : null;                                                                                                                                                                                              
+      394 +  startJitPolling();                                                                                                                                                                                                                                           
+      395  }
+      396  
+      397  function renderTree(tree) {
+     ...
+      442        : "";
+      443      let html = `<div class="u-name">${e(u.username)}${superBadge}</div>`;
+      444      if (!u.assignments.length) {
+      277 -      html += '<span style="color:#999; font-size:.8rem;">(no RBAC assignments)</span>';                                                                                                                                                                       
+      445 +      html += '<span style="color:#999; font-size:.8rem;">(no RBAC assignments — superuser short-circuits)</span>';                                                                                                                                            
+      446      }
+      447      u.assignments.forEach((a) => {
+      448        let extras = "";
+     ...
+      455        }
+      456        html += `<span class="a">→ <span class="role">${e(a.role)}</span>${extras}</span>`;
+      457      });
+      458 +    // Per-user annotations for teaching.                                                                                                                                                                                                                      
+      459 +    const notes = {                                                                                                                                                                                                                                            
+      460 +      bob:   "Two assignments → demo of object-level scope.",                                                                                                                                                                                                  
+      461 +      carol: "Time-bounded assignment → demo of just-in-time access.",                                                                                                                                                                                         
+      462 +      dave:  "archiver role holds a custom, non-CRUD perm (archive_book).",                                                                                                                                                                                    
+      463 +      admin: "is_superuser short-circuits has_perm — no RBAC lookup.",                                                                                                                                                                                         
+      464 +    };                                                                                                                                                                                                                                                         
+      465 +    if (notes[u.username]) {                                                                                                                                                                                                                                   
+      466 +      html += `<span class="note">${e(notes[u.username])}</span>`;                                                                                                                                                                                             
+      467 +    }                                                                                                                                                                                                                                                          
+      468      div.innerHTML = html;
+      469      root.appendChild(div);
+      470    });
+     ...
+      476    rows.forEach((r) => {
+      477      const tr = document.createElement("tr");
+      478      tr.className = "matrix-row";
+      301 -    const matchBadge = r.match                                                                                                                                                                                                                                 
+      302 -      ? '<span class="badge b-match">ok</span>'                                                                                                                                                                                                                
+      303 -      : '<span class="badge b-mismatch">MISMATCH</span>';                                                                                                                                                                                                      
+      479      tr.innerHTML =
+      480        `<td>${e(r.username)}</td>` +
+      481        `<td><code class="mono">${e(r.perm)}</code></td>` +
+      482        `<td>${e(r.object)}</td>` +
+      308 -      `<td>${fmtBool(r.expected)}</td>` +                                                                                                                                                                                                                      
+      483        `<td>${fmtBool(r.actual)}</td>` +
+      310 -      `<td>${matchBadge}</td>` +                                                                                                                                                                                                                               
+      311 -      `<td style="color:#666;">${e(r.why)}</td>`;                                                                                                                                                                                                              
+      484 +      `<td style="color:#555;">${e(r.why)}</td>`;                                                                                                                                                                                                              
+      485      tr.addEventListener("click", () => runCheck(tr, r));
+      486      tbody.appendChild(tr);
+      487    });
+     ...
+      510    const tr = document.createElement("tr");
+      511    tr.className = "sql-row";
+      512    const td = document.createElement("td");
+      340 -  td.colSpan = 7;                                                                                                                                                                                                                                              
+      513 +  td.colSpan = 5;                                                                                                                                                                                                                                              
+      514    if (!data.ok) {
+      515      td.innerHTML = `<div style="color:#842029;">Error: ${e(data.error)}</div>`;
+      516    } else {
+      344 -    const sqlBlocks = data.sql.map((s) => `<pre>${e(s)}</pre>`).join("");                                                                                                                                                                                      
+      345 -    td.innerHTML =                                                                                                                                                                                                                                             
+      346 -      `<div style="font-size:.82rem; margin:.25rem 0;">` +                                                                                                                                                                                                     
+      347 -      `<strong>result:</strong> ${fmtBool(data.result)} ` +                                                                                                                                                                                                    
+      348 -      `· <strong>queries:</strong> ${data.query_count}</div>` +                                                                                                                                                                                                
+      349 -      sqlBlocks;                                                                                                                                                                                                                                               
+      517 +    const blocks = data.sql.map((s) => {                                                                                                                                                                                                                       
+      518 +      const formatted = formatSql(s);                                                                                                                                                                                                                          
+      519 +      const joins = countJoins(formatted);                                                                                                                                                                                                                     
+      520 +      const summary =                                                                                                                                                                                                                                          
+      521 +        `<div class="sql-summary"><strong>${data.query_count}</strong> SQL statement` +                                                                                                                                                                        
+      522 +        `${data.query_count === 1 ? "" : "s"} · <strong>${joins}</strong> join` +                                                                                                                                                                              
+      523 +        `${joins === 1 ? "" : "s"} · same shape regardless of hierarchy depth.</div>`;                                                                                                                                                                         
+      524 +      return (data.sql.length > 1 ? "" : summary) +                                                                                                                                                                                                            
+      525 +        `<pre class="sql">${highlightSql(formatted)}</pre>`;                                                                                                                                                                                                   
+      526 +    }).join("");                                                                                                                                                                                                                                               
+      527 +    const resultBadge =                                                                                                                                                                                                                                        
+      528 +      `<div style="font-size:.85rem; margin:.25rem 0;">` +                                                                                                                                                                                                     
+      529 +      `<strong>result:</strong> ${fmtBool(data.result)}</div>`;                                                                                                                                                                                                
+      530 +    td.innerHTML = resultBadge + blocks;                                                                                                                                                                                                                       
+      531    }
+      532    tr.appendChild(td);
+      533    row.after(tr);
+     ...
+      536  async function doReset() {
+      537    await fetch("/test/api/reset/", { method: "POST" });
+      538    toast("Re-seeded.");
+      358 -  await loadState();                                                                                                                                                                                                                                           
+      359 -  resetJit();                                                                                                                                                                                                                                                  
+      539 +  await loadState(false);                                                                                                                                                                                                                                      
+      540  }
+      541  
+      362 -async function startJit() {                                                                                                                                                                                                                                    
+      363 -  stopJit();                                                                                                                                                                                                                                                   
+      364 -  const seconds = parseInt($("#jit-seconds").value, 10) || 5;                                                                                                                                                                                                  
+      365 -  const res = await fetch("/test/api/expire/", {                                                                                                                                                                                                               
+      366 -    method: "POST",                                                                                                                                                                                                                                            
+      367 -    headers: { "Content-Type": "application/json" },                                                                                                                                                                                                           
+      368 -    body: JSON.stringify({ seconds }),                                                                                                                                                                                                                         
+      369 -  });                                                                                                                                                                                                                                                          
+      370 -  const data = await res.json();                                                                                                                                                                                                                               
+      371 -  if (!data.ok) {                                                                                                                                                                                                                                              
+      372 -    toast("Error: " + data.error);                                                                                                                                                                                                                             
+      542 +// ---------- JIT polling ----------                                                                                                                                                                                                                           
+      543 +function startJitPolling() {                                                                                                                                                                                                                                   
+      544 +  stopJitPolling();                                                                                                                                                                                                                                            
+      545 +  if (jitExpiresAt === null) {                                                                                                                                                                                                                                 
+      546 +    setJitDisplay(null, null, "no JIT assignment for carol");                                                                                                                                                                                                  
+      547      return;
+      548    }
+      375 -  $("#jit-stop").disabled = false;                                                                                                                                                                                                                             
+      376 -  const expiresAt = new Date(data.expires_at);                                                                                                                                                                                                                 
+      377 -  pollJit(expiresAt);                                                                                                                                                                                                                                          
+      378 -  jitTimer = setInterval(() => pollJit(expiresAt), 1000);                                                                                                                                                                                                      
+      549 +  pollJitOnce();                                                                                                                                                                                                                                               
+      550 +  jitTimer = setInterval(pollJitOnce, 1000);                                                                                                                                                                                                                   
+      551  }
+      552  
+      381 -async function pollJit(expiresAt) {                                                                                                                                                                                                                            
+      553 +function stopJitPolling() {                                                                                                                                                                                                                                    
+      554 +  if (jitTimer) { clearInterval(jitTimer); jitTimer = null; }                                                                                                                                                                                                  
+      555 +}                                                                                                                                                                                                                                                              
+      556 +                                                                                                                                                                                                                                                               
+      557 +async function pollJitOnce() {                                                                                                                                                                                                                                 
+      558 +  if (jitExpiresAt === null) { stopJitPolling(); return; }                                                                                                                                                                                                     
+      559    const res = await fetch("/test/api/check/", {
+      560      method: "POST",
+      561      headers: { "Content-Type": "application/json" },
+      562      body: JSON.stringify({ username: "carol", perm: "library.add_book" }),
+      563    });
+      564    const data = await res.json();
+      388 -  const now = new Date();                                                                                                                                                                                                                                      
+      389 -  const secondsLeft = Math.ceil((expiresAt - now) / 1000);                                                                                                                                                                                                     
+      390 -  const resultEl = $("#jit-result");                                                                                                                                                                                                                           
+      391 -  const statusEl = $("#jit-status");                                                                                                                                                                                                                           
+      392 -  const infoEl = $("#jit-info");                                                                                                                                                                                                                               
+      393 -  resultEl.textContent = data.result ? "True" : "False";                                                                                                                                                                                                       
+      394 -  statusEl.classList.remove("is-active", "is-expired");                                                                                                                                                                                                        
+      565 +  const secondsLeft = Math.max(0, Math.ceil((jitExpiresAt - new Date()) / 1000));                                                                                                                                                                              
+      566    if (data.result) {
+      396 -    statusEl.classList.add("is-active");                                                                                                                                                                                                                       
+      397 -    infoEl.textContent = `(expires in ${Math.max(0, secondsLeft)}s)`;                                                                                                                                                                                          
+      567 +    setJitDisplay(true, secondsLeft, null);                                                                                                                                                                                                                    
+      568    } else {
+      399 -    statusEl.classList.add("is-expired");                                                                                                                                                                                                                      
+      400 -    infoEl.textContent = "(role expired — same query, driven by the expires_at column)";                                                                                                                                                                       
+      401 -    setTimeout(stopJit, 1500);                                                                                                                                                                                                                                 
+      569 +    setJitDisplay(false, 0, "expired — same query, driven by the expires_at column");                                                                                                                                                                          
+      570 +    // Stop polling shortly after it flips; user can re-trigger with the button.                                                                                                                                                                               
+      571 +    setTimeout(stopJitPolling, 2000);                                                                                                                                                                                                                          
+      572    }
+      573  }
+      574  
+      405 -function stopJit() {                                                                                                                                                                                                                                           
+      406 -  if (jitTimer) {                                                                                                                                                                                                                                              
+      407 -    clearInterval(jitTimer);                                                                                                                                                                                                                                   
+      408 -    jitTimer = null;                                                                                                                                                                                                                                           
+      575 +function setJitDisplay(result, secondsLeft, info) {                                                                                                                                                                                                            
+      576 +  const statusEl = $("#jit-status");                                                                                                                                                                                                                           
+      577 +  const resultEl = $("#jit-result");                                                                                                                                                                                                                           
+      578 +  const infoEl = $("#jit-info");                                                                                                                                                                                                                               
+      579 +  statusEl.classList.remove("is-active", "is-expired", "is-idle");                                                                                                                                                                                             
+      580 +  if (result === true) {                                                                                                                                                                                                                                       
+      581 +    statusEl.classList.add("is-active");                                                                                                                                                                                                                       
+      582 +    resultEl.textContent = "True";                                                                                                                                                                                                                             
+      583 +    infoEl.textContent = `(expires in ${secondsLeft}s)`;                                                                                                                                                                                                       
+      584 +  } else if (result === false) {                                                                                                                                                                                                                               
+      585 +    statusEl.classList.add("is-expired");                                                                                                                                                                                                                      
+      586 +    resultEl.textContent = "False";                                                                                                                                                                                                                            
+      587 +    infoEl.textContent = info ? `(${info})` : "";                                                                                                                                                                                                              
+      588 +  } else {                                                                                                                                                                                                                                                     
+      589 +    statusEl.classList.add("is-idle");                                                                                                                                                                                                                         
+      590 +    resultEl.textContent = "…";                                                                                                                                                                                                                                
+      591 +    infoEl.textContent = info ? `(${info})` : "";                                                                                                                                                                                                              
+      592    }
+      410 -  $("#jit-stop").disabled = true;                                                                                                                                                                                                                              
+      593  }
+      594  
+      413 -function resetJit() {                                                                                                                                                                                                                                          
+      414 -  stopJit();                                                                                                                                                                                                                                                   
+      415 -  $("#jit-result").textContent = "—";                                                                                                                                                                                                                          
+      416 -  $("#jit-info").textContent = "";                                                                                                                                                                                                                             
+      417 -  $("#jit-status").classList.remove("is-active", "is-expired");                                                                                                                                                                                                
+      595 +async function startJit() {                                                                                                                                                                                                                                    
+      596 +  const seconds = parseInt($("#jit-seconds").value, 10) || 5;                                                                                                                                                                                                  
+      597 +  const res = await fetch("/test/api/expire/", {                                                                                                                                                                                                               
+      598 +    method: "POST",                                                                                                                                                                                                                                            
+      599 +    headers: { "Content-Type": "application/json" },                                                                                                                                                                                                           
+      600 +    body: JSON.stringify({ seconds }),                                                                                                                                                                                                                         
+      601 +  });                                                                                                                                                                                                                                                          
+      602 +  const data = await res.json();                                                                                                                                                                                                                               
+      603 +  if (!data.ok) { toast("Error: " + data.error); return; }                                                                                                                                                                                                     
+      604 +  jitExpiresAt = new Date(data.expires_at);                                                                                                                                                                                                                    
+      605 +  toast(`carol's librarian will expire in ${seconds}s`);                                                                                                                                                                                                       
+      606 +  startJitPolling();                                                                                                                                                                                                                                           
+      607 +  // Refresh the matrix / user cards after the flip so the whole page stays coherent.                                                                                                                                                                          
+      608 +  setTimeout(() => loadState(false), (seconds + 2) * 1000);                                                                                                                                                                                                    
+      609  }
+      610  
+      611  loadState();
+  ⎿  You're out of extra usage · resets 8am (Europe/Budapest)

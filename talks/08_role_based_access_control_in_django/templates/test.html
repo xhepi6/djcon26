@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 08 — Role-Based Access Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: #666; margin-bottom: 1.5rem; font-size: .9rem; }
+  h2 { font-size: 1.1rem; margin-bottom: .75rem; color: #333; }
+  h3 { font-size: .95rem; margin-bottom: .5rem; color: #444; }
+  h4 { font-size: .88rem; margin-bottom: .4rem; color: #555; font-weight: 600; }
+
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .concept { border-left: 4px solid #ddd; }
+  .concept-indigo { border-left-color: #6366f1; }
+  .concept-green  { border-left-color: #10b981; }
+  .concept-amber  { border-left-color: #f59e0b; }
+  .concept-slate  { border-left-color: #64748b; }
+
+  .concept .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .concept .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .concept-indigo .number { background: #6366f1; }
+  .concept-green  .number { background: #10b981; }
+  .concept-amber  .number { background: #f59e0b; }
+  .concept-slate  .number { background: #64748b; }
+  .concept .header h2 { margin: 0; font-size: 1.05rem; }
+
+  .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+  .explanation strong { color: #1a1a1a; }
+  .explanation code { background: #eef; padding: 1px 5px; border-radius: 3px; font-size: .82rem; }
+
+  .problem-solution { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 820px) { .problem-solution { grid-template-columns: 1fr; } }
+  .ps-col { padding: 1rem; border-radius: 6px; font-size: .87rem; }
+  .ps-problem { background: #fef2f2; border: 1px solid #fecaca; }
+  .ps-solution { background: #ecfdf5; border: 1px solid #a7f3d0; }
+  .ps-col h4 { font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; }
+  .ps-problem h4 { color: #991b1b; }
+  .ps-solution h4 { color: #065f46; }
+  .ps-col ul { padding-left: 1.1rem; margin-top: .25rem; }
+  .ps-col li { margin-bottom: .3rem; }
+  .ps-col code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; font-size: .8rem; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; align-items: center; }
+  button, input[type=number] { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+  input[type=number] { cursor: text; width: 5.5rem; }
+  button:hover { background: #f0f0f0; }
+  button.red { background: #ef4444; color: #fff; border-color: #ef4444; }
+  button.red:hover { background: #dc2626; }
+  button.amber { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  button.amber:hover { background: #d97706; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1.3fr; gap: 1rem; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; padding: .45rem .6rem; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: .78rem; color: #555; }
+  td { padding: .4rem .6rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+  tr.matrix-row { cursor: pointer; }
+  tr.matrix-row:hover { background: #f8f9fa; }
+  tr.matrix-row.open { background: #eef2ff; }
+
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+  .b-true  { background: #d1e7dd; color: #0f5132; }
+  .b-false { background: #f8d7da; color: #842029; }
+  .b-scope { background: #fff3cd; color: #856404; }
+  .b-super { background: #e0e7ff; color: #3730a3; }
+  .b-expired { background: #f8d7da; color: #842029; }
+  .b-active  { background: #d1e7dd; color: #0f5132; }
+
+  /* Tree */
+  .tree { font-size: .85rem; }
+  .tree ul { list-style: none; padding-left: 1.2rem; border-left: 1px dashed #ccc; margin-left: .4rem; }
+  .tree > ul { padding-left: 0; border-left: 0; margin-left: 0; }
+  .tree li { padding: .15rem 0; }
+  .tree .role-name { font-weight: 600; color: #3730a3; }
+  .tree .perms { color: #666; font-size: .78rem; margin-left: .4rem; }
+  .tree .perms code { background: #eef; padding: 0 4px; border-radius: 3px; margin-right: 3px; font-size: .76rem; }
+
+  /* Closure table */
+  .closure-wrap { max-height: 320px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; }
+  .closure-wrap table { font-size: .78rem; }
+  .closure-wrap .depth-0 td { color: #999; font-style: italic; }
+  .legend { font-size: .76rem; color: #666; margin-top: .4rem; line-height: 1.4; }
+
+  /* SQL display */
+  .sql-hint { font-size: .82rem; color: #3730a3; background: #eef2ff; padding: .5rem .75rem; border-radius: 6px; margin-bottom: .5rem; border: 1px solid #c7d2fe; }
+  .sql-summary { font-size: .8rem; color: #444; margin: .4rem 0; }
+  .sql-summary strong { color: #111; }
+  pre.sql { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .7rem .9rem; overflow-x: auto; font-size: .76rem; line-height: 1.55; margin: .25rem 0; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre.sql .kw { color: #569cd6; font-weight: 600; }
+  pre.sql .fn { color: #dcdcaa; }
+  pre.sql .str { color: #ce9178; }
+  pre.sql .num { color: #b5cea8; }
+  pre.sql .id  { color: #9cdcfe; }
+
+  /* JIT widget */
+  .jit-status { font-family: monospace; font-size: 1.1rem; padding: .8rem 1rem; border-radius: 6px; background: #f8f9fa; border: 1px solid #e0e0e0; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .jit-status .big { font-size: 1.4rem; font-weight: 700; }
+  .jit-status.is-active { background: #d1e7dd; border-color: #badbcc; color: #0f5132; }
+  .jit-status.is-expired { background: #f8d7da; border-color: #f5c2c7; color: #842029; }
+  .jit-status.is-idle { color: #666; }
+
+  .users-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .75rem; margin-top: .5rem; }
+  .user-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: .6rem .75rem; background: #fafafa; font-size: .83rem; }
+  .user-card .u-name { font-weight: 700; color: #111827; margin-bottom: .25rem; }
+  .user-card .u-name .badge { margin-left: .4rem; font-weight: 600; }
+  .user-card .a { display: block; color: #444; padding-left: .2rem; }
+  .user-card .a .role { font-weight: 600; color: #3730a3; }
+  .user-card .note { display: block; font-size: .76rem; color: #6b7280; font-style: italic; margin-top: .3rem; padding-left: .2rem; }
+
+  .toast { position: fixed; top: 1rem; right: 1rem; background: #1a1a1a; color: #fff; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; opacity: 0; transition: opacity .2s; z-index: 100; }
+  .toast.show { opacity: .95; }
+
+  code.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+</style>
+</head>
+<body>
+  <h1>Talk 08 — Role-Based Access Control in Django</h1>
+  <p class="subtitle">Role hierarchy + transitive-closure cache + a single-query <code class="mono">has_perm</code>.</p>
+
+  <!-- INTRO: what you're looking at -->
+  <div class="card concept concept-slate">
+    <div class="header">
+      <div class="number">i</div>
+      <h2>What you're looking at</h2>
+    </div>
+    <div class="explanation" style="margin-bottom:.75rem;">
+      A live demo of authentik's RBAC design. A 4-role hierarchy, one closure-table cache, a custom
+      authorization backend. Every permission check collapses to <strong>one SQL query</strong> —
+      regardless of how deep the role tree goes.
+      <br>
+      <strong>Click any row in the permission matrix</strong> to see the actual query Django ran.
+      <strong>Scroll to section 3</strong> to watch just-in-time expiry flip a check from True to False live.
+    </div>
+    <div class="actions">
+      <button class="red" onclick="doReset()">Reset &amp; re-seed</button>
+      <span id="meta" style="color:#666; font-size:.8rem;"></span>
+    </div>
+  </div>
+
+  <!-- PROBLEM / SOLUTION -->
+  <div class="card">
+    <h2 style="margin-bottom:.75rem;">The problem &amp; the solution</h2>
+    <div class="problem-solution">
+      <div class="ps-col ps-problem">
+        <h4>The problem</h4>
+        <ul>
+          <li>Django ships <strong>model-level</strong> permissions: <code>user.has_perm("app.change_book")</code> — granted via user or group.</li>
+          <li><strong>django-guardian</strong> adds <strong>object-level</strong> permissions on top (generic FK to the target row).</li>
+          <li>Neither handles: <strong>group hierarchy</strong> (permissions flow down a parent→child chain), <strong>just-in-time</strong> access (grant admin for an hour), <strong>delegation</strong> (share my access with Bob), or <strong>custom non-CRUD</strong> permissions (<code>copy_book</code>, <code>approve_payout</code>).</li>
+          <li>Bolting a Role layer on top of Guardian means every check walks <em>user → group → parent → ... → role → permission</em> — <strong>N queries per check</strong>. Fine in demos, dead in prod.</li>
+        </ul>
+      </div>
+      <div class="ps-col ps-solution">
+        <h4>The solution</h4>
+        <ul>
+          <li><strong>Strip Django's authz half</strong> — <code>ModelBackendNoAuthz</code> keeps <code>authenticate()</code> but zeroes every <code>has_perm</code> / <code>get_*_permissions</code> so the chain always falls through.</li>
+          <li><strong>One custom backend</strong> (<code>RBACBackend</code>) answers <code>has_perm</code> directly against RBAC tables.</li>
+          <li><strong>Transitive-closure cache</strong>: one row per <code>(ancestor, descendant, depth)</code>, including self-links at depth 0. A permission check joins through it — <strong>one query, any depth</strong>.</li>
+          <li>Object scope &amp; JIT are just columns on <code>UserRole</code>: <code>content_type</code>/<code>object_id</code> for the object, <code>expires_at</code> for JIT. Custom perms are plain <code>Meta.permissions</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Hierarchy + Closure -->
+  <div class="card concept concept-indigo">
+    <div class="header">
+      <div class="number">1</div>
+      <h2>Role hierarchy → transitive closure</h2>
+    </div>
+    <div class="explanation">
+      The <strong>hierarchy</strong> (left) is a DAG of <code>Role.parent</code> edges.
+      The <strong>closure</strong> (right) is the cache: every ancestor-descendant pair the
+      hierarchy implies, plus the depth between them. A permission check joins through this
+      table, so <em>depth disappears from the problem</em>.
+    </div>
+    <div class="two-col">
+      <div>
+        <h3>Hierarchy</h3>
+        <div class="tree" id="tree"></div>
+      </div>
+      <div>
+        <h3>RoleAncestry (closure) — <span id="closure-count">0</span> rows</h3>
+        <div class="closure-wrap">
+          <table id="closure-table">
+            <thead><tr><th>ancestor</th><th>descendant</th><th>depth</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="legend">
+          <strong>Depth-0 rows (italicized)</strong> are self-links — "role R is its own
+          ancestor at distance 0". They let the same join cover both <em>"this role"</em>
+          and <em>"any ancestor of this role"</em>. Rebuilt on every
+          <code>Role.save()</code> / <code>Role.delete()</code> via signal. In production
+          with Postgres: a materialized view + <code>pgtrigger</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Users & assignments + matrix -->
+  <div class="card concept concept-green">
+    <div class="header">
+      <div class="number">2</div>
+      <h2>Users, assignments &amp; the permission matrix</h2>
+    </div>
+    <div class="explanation">
+      Each <strong>UserRole</strong> row binds one user to one role — optionally scoped to
+      a single object (<code>content_type</code> + <code>object_id</code>) and/or time-bounded
+      (<code>expires_at</code>). Note bob: he has <em>two</em> UserRole rows — one global
+      <code>viewer</code>, and one <code>editor</code> scoped to "Dune". That produces the
+      split result you see in the matrix: he can change Dune but not Hyperion.
+    </div>
+
+    <h3>Users &amp; their assignments</h3>
+    <div class="users-list" id="users"></div>
+
+    <h3 style="margin-top:1.25rem;">Permission matrix</h3>
+    <div class="sql-hint">
+      → Click any row to run the check live and see <strong>the single SQL query</strong>
+      Django executed. Same shape for every row, regardless of hierarchy depth.
+    </div>
+    <table id="matrix-table">
+      <thead>
+        <tr>
+          <th>user</th><th>perm</th><th>object</th><th>result</th><th>via (why)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- SECTION 3: JIT expiry -->
+  <div class="card concept concept-amber">
+    <div class="header">
+      <div class="number">3</div>
+      <h2>Just-in-time access, live</h2>
+    </div>
+    <div class="explanation">
+      JIT is <strong>one column</strong> — <code>UserRole.expires_at</code> — plus the
+      predicate <code>Q(expires_at__isnull=True) | Q(expires_at__gt=now)</code> in the
+      <code>has_perm</code> query. The panel is polling carol's permission every second.
+      Use the button below to set a new expiry and watch the badge flip from green True
+      to red False. Same query both times — the only thing that changes is the timestamp.
+    </div>
+    <div class="actions">
+      <label for="jit-seconds" style="font-size:.85rem; color:#444;">Expire in</label>
+      <input id="jit-seconds" type="number" min="1" max="60" value="5">
+      <span style="font-size:.85rem; color:#444;">seconds</span>
+      <button class="amber" onclick="startJit()">Expire carol's librarian now</button>
+    </div>
+    <div class="jit-status is-idle" id="jit-status">
+      <span><code class="mono">carol.has_perm('library.add_book')</code> =</span>
+      <span class="big" id="jit-result">…</span>
+      <span id="jit-info" style="font-size:.85rem; color:inherit; opacity:.85;"></span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+const e = escapeHtml;
+const fmtBool = (b) => `<span class="badge ${b ? 'b-true' : 'b-false'}">${b}</span>`;
+
+let jitTimer = null;
+let jitExpiresAt = null;   // Date | null
+
+// ---------- SQL pretty-print ----------
+const SQL_KEYWORDS = [
+  "SELECT", "FROM", "INNER JOIN", "LEFT OUTER JOIN", "LEFT JOIN", "RIGHT JOIN",
+  "CROSS JOIN", "WHERE", "AND", "OR", "GROUP BY", "ORDER BY", "HAVING", "LIMIT",
+  "OFFSET", "UNION", "UNION ALL", "ON",
+];
+const INLINE_KEYWORDS = new Set(["ON"]);  // don't break to new line, just highlight
+
+function formatSql(sql) {
+  const src = sql.trim();
+  let out = "";
+  let depth = 0;
+  let i = 0;
+  const atWordStart = () => i === 0 || /[^A-Za-z0-9_]/.test(src[i - 1]);
+  const matchKeyword = () => {
+    if (!atWordStart()) return null;
+    for (const kw of SQL_KEYWORDS) {
+      const len = kw.length;
+      if (src.slice(i, i + len).toUpperCase() === kw &&
+          (i + len >= src.length || /[^A-Za-z0-9_]/.test(src[i + len]))) {
+        return kw;
+      }
+    }
+    return null;
+  };
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === "(") { out += "("; depth++; i++; continue; }
+    if (ch === ")") { out += ")"; depth = Math.max(0, depth - 1); i++; continue; }
+    if (ch === "'") {
+      const end = src.indexOf("'", i + 1);
+      out += src.slice(i, end === -1 ? src.length : end + 1);
+      i = end === -1 ? src.length : end + 1;
+      continue;
+    }
+    if (ch === '"') {
+      const end = src.indexOf('"', i + 1);
+      out += src.slice(i, end === -1 ? src.length : end + 1);
+      i = end === -1 ? src.length : end + 1;
+      continue;
+    }
+    const kw = matchKeyword();
+    if (kw && !INLINE_KEYWORDS.has(kw)) {
+      if (out && !out.endsWith("\n") && out.trim() !== "") out += "\n";
+      out += "  ".repeat(depth) + kw.toUpperCase();
+      i += kw.length;
+      continue;
+    }
+    if (ch === " " && out.endsWith("\n")) { i++; continue; }
+    out += ch;
+    i++;
+  }
+  // Collapse runs of spaces (but keep newlines)
+  return out.replace(/[ \t]+/g, " ").replace(/ *\n */g, (m) =>
+    "\n" + m.replace(/[^\s]/g, "").match(/ */g)[0]
+  ).replace(/\n +/g, (m) => m).replace(/ +\n/g, "\n").trim();
+}
+
+function highlightSql(formatted) {
+  const escaped = e(formatted);
+  const kwRe = /\b(SELECT|FROM|INNER JOIN|LEFT OUTER JOIN|LEFT JOIN|RIGHT JOIN|CROSS JOIN|WHERE|AND|OR|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|UNION ALL|UNION|ON|IN|IS|NULL|AS|NOT)\b/g;
+  let out = escaped.replace(kwRe, '<span class="kw">$1</span>');
+  // strings
+  out = out.replace(/&#39;[^&]*?&#39;/g, (m) => `<span class="str">${m}</span>`);
+  // numbers
+  out = out.replace(/\b\d+\b/g, (m) => `<span class="num">${m}</span>`);
+  // double-quoted identifiers (Django uses them in Postgres/SQLite)
+  out = out.replace(/&quot;[^&]*?&quot;/g, (m) => `<span class="id">${m}</span>`);
+  return out;
+}
+
+function countJoins(formatted) {
+  const m = formatted.match(/\b(INNER|LEFT|RIGHT|CROSS)?\s*(OUTER)?\s*JOIN\b/gi);
+  return m ? m.length : 0;
+}
+
+// ---------- state ----------
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+async function loadState(autoReseed = true) {
+  let res = await fetch("/test/api/state/");
+  let data = await res.json();
+
+  if (autoReseed) {
+    // If anyone's JIT role has already expired, re-seed once so the matrix
+    // stays live. This only affects carol in the seeded scenario.
+    const anyExpired = data.users.some((u) =>
+      u.assignments.some((a) => a.expired)
+    );
+    if (anyExpired) {
+      await fetch("/test/api/reset/", { method: "POST" });
+      toast("Re-seeded — carol's JIT window had expired.");
+      res = await fetch("/test/api/state/");
+      data = await res.json();
+    }
+  }
+
+  renderTree(data.tree);
+  renderClosure(data.closure);
+  renderUsers(data.users);
+  renderMatrix(data.matrix);
+  $("#meta").textContent =
+    `${data.users.length} users · ${data.closure.length} closure rows · ${data.books.length} books`;
+
+  // Reset the JIT widget's known expiry to carol's current one and start polling.
+  const carol = data.users.find((u) => u.username === "carol");
+  const carolJit = carol && carol.assignments.find((a) => a.expires_at);
+  jitExpiresAt = carolJit ? new Date(carolJit.expires_at) : null;
+  startJitPolling();
+}
+
+function renderTree(tree) {
+  const root = $("#tree");
+  root.textContent = "";
+  const ul = document.createElement("ul");
+  tree.forEach((n) => ul.appendChild(buildTreeNode(n)));
+  root.appendChild(ul);
+}
+
+function buildTreeNode(n) {
+  const li = document.createElement("li");
+  const perms = n.permissions.length
+    ? n.permissions.map((p) => `<code>${e(p.replace(/^library\./, ""))}</code>`).join("")
+    : '<span style="color:#999;">—</span>';
+  li.innerHTML =
+    `<span class="role-name">${e(n.name)}</span>` +
+    `<span class="perms">→ ${perms}</span>`;
+  if (n.children && n.children.length) {
+    const ul = document.createElement("ul");
+    n.children.forEach((c) => ul.appendChild(buildTreeNode(c)));
+    li.appendChild(ul);
+  }
+  return li;
+}
+
+function renderClosure(rows) {
+  const tbody = $("#closure-table tbody");
+  tbody.textContent = "";
+  rows.forEach((r) => {
+    const tr = document.createElement("tr");
+    if (r.depth === 0) tr.classList.add("depth-0");
+    tr.innerHTML =
+      `<td>${e(r.ancestor)}</td><td>${e(r.descendant)}</td><td>${r.depth}</td>`;
+    tbody.appendChild(tr);
+  });
+  $("#closure-count").textContent = rows.length;
+}
+
+function renderUsers(users) {
+  const root = $("#users");
+  root.textContent = "";
+  users.forEach((u) => {
+    const div = document.createElement("div");
+    div.className = "user-card";
+    const superBadge = u.is_superuser
+      ? '<span class="badge b-super">superuser</span>'
+      : "";
+    let html = `<div class="u-name">${e(u.username)}${superBadge}</div>`;
+    if (!u.assignments.length) {
+      html += '<span style="color:#999; font-size:.8rem;">(no RBAC assignments — superuser short-circuits)</span>';
+    }
+    u.assignments.forEach((a) => {
+      let extras = "";
+      if (a.scope) extras += ` <span class="badge b-scope">on ${e(a.scope)}</span>`;
+      if (a.expires_at) {
+        const label = a.expired
+          ? '<span class="badge b-expired">expired</span>'
+          : `<span class="badge b-active">expires ${a.seconds_left}s</span>`;
+        extras += " " + label;
+      }
+      html += `<span class="a">→ <span class="role">${e(a.role)}</span>${extras}</span>`;
+    });
+    // Per-user annotations for teaching.
+    const notes = {
+      bob:   "Two assignments → demo of object-level scope.",
+      carol: "Time-bounded assignment → demo of just-in-time access.",
+      dave:  "archiver role holds a custom, non-CRUD perm (archive_book).",
+      admin: "is_superuser short-circuits has_perm — no RBAC lookup.",
+    };
+    if (notes[u.username]) {
+      html += `<span class="note">${e(notes[u.username])}</span>`;
+    }
+    div.innerHTML = html;
+    root.appendChild(div);
+  });
+}
+
+function renderMatrix(rows) {
+  const tbody = $("#matrix-table tbody");
+  tbody.textContent = "";
+  rows.forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.className = "matrix-row";
+    tr.innerHTML =
+      `<td>${e(r.username)}</td>` +
+      `<td><code class="mono">${e(r.perm)}</code></td>` +
+      `<td>${e(r.object)}</td>` +
+      `<td>${fmtBool(r.actual)}</td>` +
+      `<td style="color:#555;">${e(r.why)}</td>`;
+    tr.addEventListener("click", () => runCheck(tr, r));
+    tbody.appendChild(tr);
+  });
+}
+
+async function runCheck(row, r) {
+  const existing = row.nextElementSibling;
+  if (existing && existing.classList.contains("sql-row")) {
+    existing.remove();
+    row.classList.remove("open");
+    return;
+  }
+  document.querySelectorAll(".sql-row").forEach((el) => el.remove());
+  document.querySelectorAll(".matrix-row.open").forEach((el) => el.classList.remove("open"));
+  row.classList.add("open");
+
+  const book = r.object === "—" ? null : r.object;
+  const body = JSON.stringify({ username: r.username, perm: r.perm, book });
+  const res = await fetch("/test/api/check/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+  const data = await res.json();
+
+  const tr = document.createElement("tr");
+  tr.className = "sql-row";
+  const td = document.createElement("td");
+  td.colSpan = 5;
+  if (!data.ok) {
+    td.innerHTML = `<div style="color:#842029;">Error: ${e(data.error)}</div>`;
+  } else {
+    const blocks = data.sql.map((s) => {
+      const formatted = formatSql(s);
+      const joins = countJoins(formatted);
+      const summary =
+        `<div class="sql-summary"><strong>${data.query_count}</strong> SQL statement` +
+        `${data.query_count === 1 ? "" : "s"} · <strong>${joins}</strong> join` +
+        `${joins === 1 ? "" : "s"} · same shape regardless of hierarchy depth.</div>`;
+      return (data.sql.length > 1 ? "" : summary) +
+        `<pre class="sql">${highlightSql(formatted)}</pre>`;
+    }).join("");
+    const resultBadge =
+      `<div style="font-size:.85rem; margin:.25rem 0;">` +
+      `<strong>result:</strong> ${fmtBool(data.result)}</div>`;
+    td.innerHTML = resultBadge + blocks;
+  }
+  tr.appendChild(td);
+  row.after(tr);
+}
+
+async function doReset() {
+  await fetch("/test/api/reset/", { method: "POST" });
+  toast("Re-seeded.");
+  await loadState(false);
+}
+
+// ---------- JIT polling ----------
+function startJitPolling() {
+  stopJitPolling();
+  if (jitExpiresAt === null) {
+    setJitDisplay(null, null, "no JIT assignment for carol");
+    return;
+  }
+  pollJitOnce();
+  jitTimer = setInterval(pollJitOnce, 1000);
+}
+
+function stopJitPolling() {
+  if (jitTimer) { clearInterval(jitTimer); jitTimer = null; }
+}
+
+async function pollJitOnce() {
+  if (jitExpiresAt === null) { stopJitPolling(); return; }
+  const res = await fetch("/test/api/check/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "carol", perm: "library.add_book" }),
+  });
+  const data = await res.json();
+  const secondsLeft = Math.max(0, Math.ceil((jitExpiresAt - new Date()) / 1000));
+  if (data.result) {
+    setJitDisplay(true, secondsLeft, null);
+  } else {
+    setJitDisplay(false, 0, "expired — same query, driven by the expires_at column");
+    // Stop polling shortly after it flips; user can re-trigger with the button.
+    setTimeout(stopJitPolling, 2000);
+  }
+}
+
+function setJitDisplay(result, secondsLeft, info) {
+  const statusEl = $("#jit-status");
+  const resultEl = $("#jit-result");
+  const infoEl = $("#jit-info");
+  statusEl.classList.remove("is-active", "is-expired", "is-idle");
+  if (result === true) {
+    statusEl.classList.add("is-active");
+    resultEl.textContent = "True";
+    infoEl.textContent = `(expires in ${secondsLeft}s)`;
+  } else if (result === false) {
+    statusEl.classList.add("is-expired");
+    resultEl.textContent = "False";
+    infoEl.textContent = info ? `(${info})` : "";
+  } else {
+    statusEl.classList.add("is-idle");
+    resultEl.textContent = "…";
+    infoEl.textContent = info ? `(${info})` : "";
+  }
+}
+
+async function startJit() {
+  const seconds = parseInt($("#jit-seconds").value, 10) || 5;
+  const res = await fetch("/test/api/expire/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seconds }),
+  });
+  const data = await res.json();
+  if (!data.ok) { toast("Error: " + data.error); return; }
+  jitExpiresAt = new Date(data.expires_at);
+  toast(`carol's librarian will expire in ${seconds}s`);
+  startJitPolling();
+  // Refresh the matrix / user cards after the flip so the whole page stays coherent.
+  setTimeout(() => loadState(false), (seconds + 2) * 1000);
+}
+
+loadState();
+</script>
+</body>
+</html>
