@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 10 — What's in Your Dependencies?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: #666; margin-bottom: 1.5rem; font-size: .9rem; }
+  h2 { font-size: 1.1rem; margin-bottom: .75rem; color: #333; }
+  h3 { font-size: .95rem; margin-bottom: .5rem; color: #444; }
+
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .concept { border-left: 4px solid #ddd; }
+  .concept-red    { border-left-color: #ef4444; }
+  .concept-indigo { border-left-color: #6366f1; }
+  .concept-green  { border-left-color: #10b981; }
+  .concept-amber  { border-left-color: #f59e0b; }
+  .concept-slate  { border-left-color: #64748b; }
+
+  .concept .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .concept .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .concept-red    .number { background: #ef4444; }
+  .concept-indigo .number { background: #6366f1; }
+  .concept-green  .number { background: #10b981; }
+  .concept-amber  .number { background: #f59e0b; }
+  .concept-slate  .number { background: #64748b; }
+  .concept .header h2 { margin: 0; font-size: 1.05rem; }
+
+  .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+  .explanation strong { color: #1a1a1a; }
+  .explanation code { background: #eef; padding: 1px 5px; border-radius: 3px; font-size: .82rem; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; align-items: center; }
+  button { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: #6366f1; color: #fff; border-color: #6366f1; }
+  button.primary:hover { background: #4f46e5; }
+  button.green { background: #10b981; color: #fff; border-color: #10b981; }
+  button.green:hover { background: #059669; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  input[type=text] { padding: .45rem .75rem; border: 1px solid #ddd; border-radius: 6px; font-size: .84rem; width: 220px; }
+  input[type=text]:focus { outline: none; border-color: #6366f1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; padding: .45rem .6rem; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: .78rem; color: #555; }
+  td { padding: .4rem .6rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+  .b-critical { background: #fde8e8; color: #9b1c1c; }
+  .b-high     { background: #fef3c7; color: #92400e; }
+  .b-medium   { background: #fef9c3; color: #713f12; }
+  .b-low      { background: #d1fae5; color: #065f46; }
+  .b-unknown  { background: #f3f4f6; color: #4b5563; }
+  .b-good     { background: #d1fae5; color: #065f46; }
+  .b-warn     { background: #fef3c7; color: #92400e; }
+  .b-bad      { background: #fde8e8; color: #9b1c1c; }
+
+  .pkg-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
+  .pkg-chip { background: #eef2ff; color: #3730a3; border-radius: 4px; padding: .15rem .5rem; font-size: .76rem; font-family: ui-monospace, monospace; }
+
+  pre.code-block { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .7rem .9rem; overflow-x: auto; font-size: .78rem; line-height: 1.55; margin: .5rem 0; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .score-bar { height: 12px; border-radius: 6px; background: #e5e7eb; overflow: hidden; margin: .4rem 0 .6rem; }
+  .score-fill { height: 100%; border-radius: 6px; transition: width .4s ease; }
+  .score-fill.good { background: #10b981; }
+  .score-fill.warn { background: #f59e0b; }
+  .score-fill.bad  { background: #ef4444; }
+
+  .signal-row { display: flex; align-items: center; gap: .5rem; font-size: .84rem; padding: .25rem 0; }
+  .signal-row .detail { color: #555; font-size: .8rem; }
+
+  .incident-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .75rem; margin-top: .75rem; }
+  .incident-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: .75rem; background: #fafafa; font-size: .83rem; }
+  .incident-card .inc-title { font-weight: 700; color: #111827; margin-bottom: .3rem; }
+  .incident-card .inc-type { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin-bottom: .4rem; }
+  .incident-card .inc-body { color: #374151; line-height: 1.5; }
+  .incident-card .inc-impact { color: #9b1c1c; font-size: .78rem; margin-top: .4rem; font-style: italic; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+  #audit-results { margin-top: .75rem; }
+  #check-results { margin-top: .75rem; }
+  #hashes-results { margin-top: .75rem; }
+  #state-results { margin-top: .75rem; }
+
+  .loading { color: #666; font-size: .85rem; padding: .5rem 0; }
+
+  .hash-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .75rem; }
+  @media (max-width: 760px) { .hash-comparison { grid-template-columns: 1fr; } }
+  .hash-side h3 { font-size: .88rem; margin-bottom: .3rem; }
+
+  .clean-banner { background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 6px; padding: .75rem 1rem; color: #065f46; font-size: .9rem; font-weight: 600; }
+  .vuln-banner  { background: #fde8e8; border: 1px solid #fca5a5; border-radius: 6px; padding: .75rem 1rem; color: #9b1c1c; font-size: .9rem; font-weight: 600; }
+
+  .toast { position: fixed; top: 1rem; right: 1rem; background: #1a1a1a; color: #fff; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; opacity: 0; transition: opacity .2s; z-index: 100; }
+  .toast.show { opacity: .95; }
+
+  code.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .hint { font-size: .8rem; color: #666; }
+  a { color: #6366f1; }
+</style>
+</head>
+<body>
+  <h1>Talk 10 — What's in Your Dependencies?</h1>
+  <p class="subtitle">Supply chain security for Django projects: scan, evaluate, and harden your dependencies.</p>
+
+  <!-- INTRO -->
+  <div class="card concept concept-slate">
+    <div class="header">
+      <div class="number">i</div>
+      <h2>What you're looking at</h2>
+    </div>
+    <div class="explanation">
+      A live demo of the supply chain defense toolkit from the talk. Every <code>pip install</code>
+      runs untrusted code with your privileges — no sandboxing. Use the panels below to scan your
+      environment, evaluate a package before installing it, and see what hash-pinned requirements
+      look like.
+    </div>
+    <div class="actions">
+      <button onclick="loadState()">Load environment state</button>
+      <span id="pkg-meta" class="hint"></span>
+    </div>
+    <div id="state-results"></div>
+  </div>
+
+  <!-- SECTION 1: Vulnerability scanner -->
+  <div class="card concept concept-red">
+    <div class="header">
+      <div class="number">1</div>
+      <h2>Scan for vulnerabilities (pip-audit)</h2>
+    </div>
+    <div class="explanation">
+      <strong>pip-audit</strong> checks every installed package against the OSV (Open Source
+      Vulnerabilities) database. Run this in CI on every PR so you catch new CVEs as they're
+      published — not after you've been breached. Also available as a GitHub Action:
+      <code>pypa/gh-action-pip-audit</code>.
+    </div>
+    <div class="actions">
+      <button class="primary" onclick="runAudit()" id="audit-btn">Scan for Vulnerabilities</button>
+    </div>
+    <div id="audit-results"></div>
+  </div>
+
+  <!-- SECTION 2: Package checker -->
+  <div class="card concept concept-indigo">
+    <div class="header">
+      <div class="number">2</div>
+      <h2>Evaluate a package before installing</h2>
+    </div>
+    <div class="explanation">
+      Before adding any new dependency: query the PyPI API for health signals. A brand-new package
+      with no history, no source repo, and no license is a red flag. Also check
+      <strong>deps.dev</strong> and <strong>Socket.dev</strong> for deeper analysis.
+    </div>
+    <div class="actions">
+      <input type="text" id="pkg-input" placeholder="e.g. django, requests, django-ninja" value="django">
+      <button class="primary" onclick="checkPackage()">Check Package</button>
+    </div>
+    <div id="check-results"></div>
+  </div>
+
+  <!-- SECTION 3: Hash pinning -->
+  <div class="card concept concept-green">
+    <div class="header">
+      <div class="number">3</div>
+      <h2>Hash-pinned requirements</h2>
+    </div>
+    <div class="explanation">
+      A version pin (<code>django==5.1.3</code>) tells pip <strong>which version</strong> to install.
+      A hash pin tells pip <strong>exactly which file</strong> to accept. If the file on PyPI changes
+      — even at the same version — installation fails. This protects against compromised maintainer
+      accounts and mirror tampering.
+    </div>
+    <div class="actions">
+      <button class="green" onclick="showHashes()">Show Hash-Pinned Requirements</button>
+    </div>
+    <div id="hashes-results"></div>
+  </div>
+
+  <!-- SECTION 4: Real incidents -->
+  <div class="card concept concept-amber">
+    <div class="header">
+      <div class="number">4</div>
+      <h2>Real incidents from the talk</h2>
+    </div>
+    <div class="explanation">
+      These attacks are not theoretical. They happened on PyPI and affected real packages with
+      real download counts. Understanding them shapes how you defend.
+    </div>
+    <div class="incident-grid">
+      <div class="incident-card">
+        <div class="inc-title">jeIlyfish / python3-dateutil</div>
+        <div class="inc-type">Typosquatting</div>
+        <div class="inc-body">
+          <code>jeIlyfish</code> (capital I instead of L) impersonated <code>jellyfish</code>.
+          Paired with <code>python3-dateutil</code>. Both stole SSH and GPG keys.
+        </div>
+        <div class="inc-impact">On PyPI undetected for ~1 year (2019)</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">Colorama typosquats</div>
+        <div class="inc-type">Typosquatting + malware</div>
+        <div class="inc-body">
+          500+ fake variations of <code>colorama</code> deployed zgRAT malware via a fake
+          PyPI mirror domain.
+        </div>
+        <div class="inc-impact">2024 — discovered via domain analysis</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">deep-translator phishing</div>
+        <div class="inc-type">Phishing maintainers</div>
+        <div class="inc-body">
+          Attackers impersonated PyPI with a fake "mandatory validation" email. Maintainers of
+          <code>deep-translator</code>, <code>exotel</code>, and <code>spam</code> had credentials
+          stolen. Malicious versions published under their accounts.
+        </div>
+        <div class="inc-impact">August 2022</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">Codecov Bash Uploader</div>
+        <div class="inc-type">CI/CD pipeline attack</div>
+        <div class="inc-body">
+          Attackers used leaked Docker credentials to modify Codecov's Bash Uploader. For ~2 months
+          it exfiltrated environment variables from 23,000+ customers (Twilio, HashiCorp, etc.).
+        </div>
+        <div class="inc-impact">2021 — 2 months undetected</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">Ultralytics YOLO</div>
+        <div class="inc-type">GitHub Actions injection</div>
+        <div class="inc-body">
+          Attackers exploited <code>pull_request_target</code> + template injection via a branch
+          name to inject a crypto miner into PyPI versions 8.3.41 and 8.3.42.
+        </div>
+        <div class="inc-impact">~60M downloads, 30K+ stars (2024)</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">ctx package</div>
+        <div class="inc-type">Account hijacking</div>
+        <div class="inc-body">
+          Dormant for ~8 years. Attacker bought the expired domain of the maintainer's email,
+          then used PyPI's password reset to take over the account. Published versions that stole
+          AWS environment variables.
+        </div>
+        <div class="inc-impact">~27,000 malicious downloads (2022)</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">Dependency confusion</div>
+        <div class="inc-type">Name collision attack</div>
+        <div class="inc-body">
+          Alex Birsan published public packages with the same names as internal private packages at
+          Apple, Microsoft, PayPal, Tesla. Package managers installed the public one because it had a
+          higher version number.
+        </div>
+        <div class="inc-impact">35+ companies breached, $130K+ bounties (2021)</div>
+      </div>
+      <div class="incident-card">
+        <div class="inc-title">AI-hallucinated packages</div>
+        <div class="inc-type">Emerging threat</div>
+        <div class="inc-body">
+          LLMs sometimes suggest package names that don't exist. An attacker can register that name
+          on PyPI. Developers copy-paste the install command and run malicious code without knowing.
+        </div>
+        <div class="inc-impact">Active — growing concern as AI code gen adoption increases</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+const e = escapeHtml;
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+function signalBadge(status) {
+  const cls = { good: "b-good", warn: "b-warn", bad: "b-bad" }[status] || "b-unknown";
+  const label = { good: "ok", warn: "~", bad: "!" }[status] || "?";
+  return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+
+function scoreClass(score) {
+  if (score >= 70) return "good";
+  if (score >= 45) return "warn";
+  return "bad";
+}
+
+function setHtml(id, html) {
+  document.getElementById(id).innerHTML = html;
+}
+
+// ---- State (environment info) ----
+async function loadState() {
+  setHtml("state-results", '<div class="loading">Loading installed packages...</div>');
+  try {
+    const res = await fetch("/test/api/state/");
+    const data = await res.json();
+    $("#pkg-meta").textContent = data.package_count + " packages installed";
+
+    let html = '<div class="pkg-list">';
+    for (const pkg of (data.packages || [])) {
+      html += '<span class="pkg-chip">' + e(pkg.name) + " " + e(pkg.version || "") + "</span>";
+    }
+    html += "</div>";
+    setHtml("state-results", html);
+  } catch (err) {
+    setHtml("state-results", '<div style="color:#842029;">Error: ' + e(err.message) + "</div>");
+  }
+}
+
+// ---- Audit ----
+async function runAudit() {
+  const btn = $("#audit-btn");
+  btn.disabled = true;
+  setHtml("audit-results", '<div class="loading">Running pip-audit... this may take 10-20 seconds.</div>');
+
+  try {
+    const res = await fetch("/test/api/audit/", { method: "POST" });
+    const data = await res.json();
+
+    if (!data.ok) {
+      let html = '<div class="vuln-banner">' + e(data.error) + "</div>";
+      if (data.install_hint) {
+        html += '<p style="margin-top:.5rem; font-size:.85rem;">Install with: <code class="mono">' + e(data.install_hint) + "</code></p>";
+      }
+      setHtml("audit-results", html);
+      return;
+    }
+
+    const vulns = data.vulnerabilities || [];
+    if (vulns.length === 0) {
+      setHtml("audit-results", '<div class="clean-banner">No vulnerabilities found in the current environment.</div>');
+      return;
+    }
+
+    let rows = "";
+    for (const v of vulns) {
+      const aliases = (v.aliases || []).join(", ");
+      const sevs = (v.fix_versions || []).length > 0
+        ? "Fix: " + e((v.fix_versions || []).join(", "))
+        : "No fix available";
+      rows += "<tr><td><code class='mono'>" + e(v.name) + "</code></td>"
+        + "<td>" + e(v.version || "") + "</td>"
+        + "<td>" + e(v.id || "") + "</td>"
+        + "<td>" + e(aliases) + "</td>"
+        + "<td>" + e((v.description || "").slice(0, 120)) + "...</td>"
+        + '<td><span style="font-size:.78rem; color:#555;">' + sevs + "</span></td></tr>";
+    }
+
+    setHtml("audit-results",
+      '<div class="vuln-banner" style="margin-bottom:.75rem;">'
+      + vulns.length + " vulnerabilit" + (vulns.length === 1 ? "y" : "ies") + " found.</div>"
+      + "<table><thead><tr><th>Package</th><th>Version</th><th>ID</th><th>Aliases</th><th>Description</th><th>Fix</th></tr></thead>"
+      + "<tbody>" + rows + "</tbody></table>"
+    );
+  } catch (err) {
+    setHtml("audit-results", '<div style="color:#842029;">Error: ' + e(err.message) + "</div>");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---- Package checker ----
+async function checkPackage() {
+  const pkg = $("#pkg-input").value.trim();
+  if (!pkg) return;
+  setHtml("check-results", '<div class="loading">Querying PyPI for "' + e(pkg) + '"...</div>');
+
+  try {
+    const res = await fetch("/test/api/check/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ package: pkg }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      let html = '<div class="vuln-banner">' + e(data.error) + "</div>";
+      if (data.hint) {
+        html += '<p style="margin-top:.5rem; font-size:.85rem; color:#555;">' + e(data.hint) + "</p>";
+      }
+      setHtml("check-results", html);
+      return;
+    }
+
+    const sc = data.health_score;
+    const scCls = scoreClass(sc);
+    const scColor = scCls === "good" ? "#065f46" : scCls === "warn" ? "#92400e" : "#9b1c1c";
+
+    let signalRows = (data.signals || []).map((s) =>
+      '<div class="signal-row">' + signalBadge(s.status)
+      + " <strong>" + e(s.label) + "</strong>"
+      + ' <span class="detail">— ' + e(s.detail) + "</span></div>"
+    ).join("");
+
+    let urlLinks = "";
+    if (data.pypi_url) urlLinks += '<a href="' + e(data.pypi_url) + '" target="_blank" style="color:#6366f1; font-size:.82rem;">PyPI</a> &nbsp;';
+    if (data.deps_dev_url) urlLinks += '<a href="' + e(data.deps_dev_url) + '" target="_blank" style="color:#6366f1; font-size:.82rem;">deps.dev</a> &nbsp;';
+    if (data.socket_dev_url) urlLinks += '<a href="' + e(data.socket_dev_url) + '" target="_blank" style="color:#6366f1; font-size:.82rem;">Socket.dev</a>';
+
+    const repoEntry = Object.entries(data.project_urls || {}).find(([, u]) =>
+      u.includes("github.com") || u.includes("gitlab.com") || u.includes("codeberg.org")
+    );
+    const repoRow = repoEntry
+      ? '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">Source</td>'
+        + '<td style="font-size:.82rem;"><a href="' + e(repoEntry[1]) + '" target="_blank">' + e(repoEntry[0]) + "</a></td></tr>"
+      : "";
+
+    const lastRel = e(data.last_release || "Unknown")
+      + (data.days_since_release !== null ? " (" + data.days_since_release + " days ago)" : "");
+    const authorEmail = data.author_email ? " &lt;" + e(data.author_email) + "&gt;" : "";
+
+    setHtml("check-results",
+      '<div class="two-col">'
+      + "<div>"
+      + "<h3>" + e(data.name) + ' <span style="font-weight:400; color:#555; font-size:.9rem;">v' + e(data.version) + "</span></h3>"
+      + '<p style="font-size:.85rem; color:#444; margin:.3rem 0 .6rem;">' + e(data.summary || "") + "</p>"
+      + '<table style="width:auto;">'
+      + '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">License</td><td style="font-size:.82rem;">' + e(data.license) + "</td></tr>"
+      + '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">Author</td><td style="font-size:.82rem;">' + e(data.author) + authorEmail + "</td></tr>"
+      + '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">Python</td><td style="font-size:.82rem;">' + e(data.requires_python) + "</td></tr>"
+      + '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">Versions</td><td style="font-size:.82rem;">' + data.version_count + "</td></tr>"
+      + '<tr><td style="color:#666; padding-right:1rem; font-size:.82rem;">Last release</td><td style="font-size:.82rem;">' + lastRel + "</td></tr>"
+      + repoRow
+      + "</table>"
+      + '<div style="margin-top:.75rem;">' + urlLinks + "</div>"
+      + "</div>"
+      + "<div>"
+      + "<h3>Health score</h3>"
+      + '<div style="font-size:1.6rem; font-weight:700; color:' + scColor + ';">' + sc + "/100</div>"
+      + '<div class="score-bar"><div class="score-fill ' + scCls + '" style="width:' + sc + '%"></div></div>'
+      + signalRows
+      + "</div>"
+      + "</div>"
+    );
+  } catch (err) {
+    setHtml("check-results", '<div style="color:#842029;">Error: ' + e(err.message) + "</div>");
+  }
+}
+
+// Enter key on package input
+$("#pkg-input").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") checkPackage();
+});
+
+// ---- Hash pinning demo ----
+async function showHashes() {
+  setHtml("hashes-results", '<div class="loading">Loading...</div>');
+
+  try {
+    const res = await fetch("/test/api/hashes/", { method: "POST" });
+    const data = await res.json();
+
+    if (!data.ok) {
+      setHtml("hashes-results", '<div style="color:#842029;">' + e(data.error) + "</div>");
+      return;
+    }
+
+    const exp = data.explanation;
+    let genRows = (exp.how_to_generate || []).map((g) =>
+      "<tr><td style='color:#666; font-size:.82rem; padding-right:1rem; white-space:nowrap;'>" + e(g.tool) + "</td>"
+      + "<td><code class='mono' style='font-size:.78rem;'>" + e(g.command) + "</code></td></tr>"
+    ).join("");
+
+    let protects = (exp.hashed.protects_against || []).map((p) =>
+      "<li style='font-size:.82rem;'>" + e(p) + "</li>"
+    ).join("");
+
+    setHtml("hashes-results",
+      '<div class="hash-comparison">'
+      + '<div class="hash-side"><h3>Plain requirements.txt</h3>'
+      + '<pre class="code-block">' + e(data.plain_requirements) + "</pre>"
+      + '<p style="font-size:.82rem; color:#9b1c1c; margin-top:.3rem;">' + e(exp.plain.risk) + "</p></div>"
+      + '<div class="hash-side"><h3>Hash-pinned version</h3>'
+      + '<pre class="code-block">' + e(data.hashed_example) + "</pre>"
+      + '<p style="font-size:.82rem; color:#065f46; margin-top:.3rem;">' + e(exp.hashed.what_it_does) + "</p></div>"
+      + "</div>"
+      + '<div class="card" style="margin-top:.75rem; background:#f8f9fa;">'
+      + "<h3 style='margin-bottom:.5rem;'>What hash pinning protects against</h3>"
+      + "<ul style='padding-left:1.2rem;'>" + protects + "</ul>"
+      + "<h3 style='margin:.75rem 0 .4rem;'>How to generate a hashed lockfile</h3>"
+      + "<table>" + genRows + "</table>"
+      + "<p style='font-size:.82rem; margin-top:.5rem;'>Install with: <code class='mono'>" + e(exp.install_with_hashes) + "</code></p>"
+      + "</div>"
+    );
+  } catch (err) {
+    setHtml("hashes-results", '<div style="color:#842029;">Error: ' + e(err.message) + "</div>");
+  }
+}
+
+// Auto-load state on page open
+loadState();
+</script>
+</body>
+</html>

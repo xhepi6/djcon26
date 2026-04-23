@@ -136,15 +136,20 @@ Options:
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project that demonstrates supply chain defense tools. Try it:
+A runnable Django project that demonstrates supply chain defense tools. Try it:
 
 ```bash
-cd experiment
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py runserver
 ```
 
-Then run the commands:
+Then visit http://localhost:8000/test/ for an interactive panel where you can:
+- Scan for vulnerabilities with pip-audit
+- Evaluate any package via the PyPI API
+- See what hash-pinned requirements look like
+
+Or run the management commands directly:
 
 ```bash
 # Scan your environment for known vulnerabilities
@@ -162,6 +167,7 @@ Key files to explore:
 - `deps/management/commands/check_dep.py` — queries PyPI for package health info
 - `deps/management/commands/show_hashes.py` — demonstrates hash-pinning workflow
 - `requirements-hashed.txt` — example of a fully hash-pinned requirements file
+- `test_views.py` — API endpoints powering the /test/ panel
 
 ## Key Takeaways
 
