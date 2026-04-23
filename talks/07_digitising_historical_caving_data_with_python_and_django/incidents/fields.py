@@ -145,7 +145,8 @@ class FuzzyDate:
             month_name = dt.date(self.year, self.month or 1, 1).strftime("%B")
             return f"{month_name} {self.year}"
         assert self.day is not None
-        return dt.date(self.year, self.month or 1, self.day).strftime("%-d %B %Y")
+        d = dt.date(self.year, self.month or 1, self.day)
+        return f"{d.day} {d.strftime('%B')} {d.year}"
 
 
 # ---------------------------------------------------------------------------

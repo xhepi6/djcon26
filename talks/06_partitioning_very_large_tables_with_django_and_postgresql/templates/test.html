@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Panel — Partitioning Very Large Tables</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 960px; margin: 2rem auto; padding: 0 1rem;
+    line-height: 1.5; color: #1a1a1a; background: #f5f5f5;
+}
+h1 { margin-bottom: 0.25rem; }
+.subtitle { color: #666; margin-bottom: 1.5rem; }
+a { color: #2563eb; }
+nav { margin-bottom: 2rem; }
+nav a { margin-right: 1rem; font-weight: 500; }
+
+/* Cards */
+.card {
+    background: #fff; border-radius: 10px; padding: 1.5rem;
+    margin-bottom: 1.5rem; border: 2px solid #e5e7eb;
+}
+.card h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+.card-amber { border-left: 5px solid #f59e0b; }
+.card-green { border-left: 5px solid #10b981; }
+.card-purple { border-left: 5px solid #8b5cf6; }
+.card-indigo { border-left: 5px solid #6366f1; }
+.label {
+    display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+.label-amber { background: #fef3c7; color: #92400e; }
+.label-green { background: #d1fae5; color: #065f46; }
+.label-purple { background: #ede9fe; color: #5b21b6; }
+.label-indigo { background: #e0e7ff; color: #3730a3; }
+
+/* Explanation */
+.explain { color: #444; margin-bottom: 1rem; line-height: 1.6; }
+.explain strong { color: #1a1a1a; }
+
+/* Code blocks */
+pre {
+    background: #1e293b; color: #e2e8f0; padding: 1rem;
+    border-radius: 8px; overflow-x: auto; font-size: 0.82rem;
+    line-height: 1.5; margin: 0.75rem 0;
+}
+pre code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; }
+.hl { background: rgba(250, 204, 21, 0.2); display: inline; }
+.comment { color: #64748b; }
+
+/* Demo area */
+.demo-area {
+    margin: 1rem 0; padding: 1rem;
+    background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.demo-area h3 { font-size: 0.95rem; color: #475569; margin-bottom: 0.75rem; }
+
+/* Tables */
+.data-table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem;
+}
+.data-table th, .data-table td {
+    padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid #e5e7eb;
+}
+.data-table th { background: #f8fafc; font-weight: 600; color: #374151; }
+.data-table tr:hover { background: #f8fafc; }
+
+/* Partition bar chart */
+.bar-chart { margin-top: 0.75rem; }
+.bar-row {
+    display: flex; align-items: center; margin-bottom: 0.3rem; font-size: 0.8rem;
+}
+.bar-label {
+    width: 260px; font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.75rem; color: #374151; flex-shrink: 0;
+}
+.bar-fill {
+    height: 22px; border-radius: 4px; min-width: 2px;
+    display: flex; align-items: center; padding: 0 0.5rem;
+    font-size: 0.7rem; font-weight: 600; color: #fff;
+    transition: width 0.5s ease;
+}
+.bar-count {
+    margin-left: 0.5rem; font-size: 0.75rem; color: #6b7280;
+    white-space: nowrap;
+}
+
+/* EXPLAIN output */
+.explain-output {
+    background: #1e293b; color: #e2e8f0; padding: 0.75rem 1rem;
+    border-radius: 8px; font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.75rem; line-height: 1.6; overflow-x: auto;
+    margin: 0.5rem 0; max-height: 350px; overflow-y: auto;
+}
+.explain-output .pruned { color: #64748b; }
+.explain-output .scanned { color: #34d399; font-weight: 600; }
+.explain-output .append-node { color: #f59e0b; font-weight: 600; }
+
+/* Status badges */
+.badge {
+    display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600;
+}
+.badge-pruned { background: #d1fae5; color: #065f46; }
+.badge-scanned { background: #fee2e2; color: #991b1b; }
+.badge-default { background: #e0e7ff; color: #3730a3; }
+
+/* Diagram */
+.partition-diagram {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0;
+    padding: 0.75rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.partition-box {
+    padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem;
+    font-weight: 500; border: 2px solid; text-align: center; min-width: 80px;
+}
+.box-parent { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+.box-child { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+.box-default { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.box-arrow { display: flex; align-items: center; color: #94a3b8; font-size: 1.2rem; }
+
+/* Buttons */
+button, .btn {
+    cursor: pointer; padding: 0.3rem 0.8rem;
+    border: 1px solid #d1d5db; background: #fff; border-radius: 6px;
+    font-size: 0.85rem;
+}
+button:hover, .btn:hover { background: #f3f4f6; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+
+/* Loading */
+.loading { color: #94a3b8; font-style: italic; font-size: 0.9rem; }
+.toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.toolbar-note { color: #6b7280; font-size: 0.8rem; margin-top: 0.3rem; }
+
+/* Comparison layout */
+.comparison {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.75rem 0;
+}
+@media (max-width: 700px) { .comparison { grid-template-columns: 1fr; } }
+.comparison-col { }
+.comparison-col h4 { font-size: 0.9rem; margin-bottom: 0.5rem; }
+.comparison-col .tag {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-bottom: 0.5rem;
+}
+.tag-good { background: #d1fae5; color: #065f46; }
+.tag-bad { background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+<body>
+
+<h1>Partitioning Very Large Tables</h1>
+<p class="subtitle">DjangoCon Europe 2026 &mdash; Tim Bell, Kraken Tech. Interactive demo of PostgreSQL table partitioning with Django.</p>
+<nav>
+    <a href="/">Home</a>
+    <a href="/test/">Test panel</a>
+</nav>
+
+<div class="toolbar">
+    <button class="btn btn-primary" onclick="seedData()">Seed data</button>
+    <button class="btn" onclick="refreshAll()">Refresh</button>
+</div>
+<p class="toolbar-note">Seed inserts ~3500 rows across 7 monthly partitions + 1 in DEFAULT. Requires a running PostgreSQL (see docker-compose.yml).</p>
+
+<!-- ================================================================== -->
+<!-- CARD 1: What Is Partitioning? -->
+<!-- ================================================================== -->
+
+<div class="card card-amber">
+    <span class="label label-amber">The Problem</span>
+    <h2>Why Partition? The 9-Billion-Row Table</h2>
+
+    <p class="explain">
+        A single table grows to <strong>9 billion rows, 3 TB</strong>. Vacuuming takes 20 hours, runs daily,
+        and blocks schema changes. You can't delete old data (app changes needed) or start fresh (defers the problem).
+        <strong>Partitioning</strong> splits one logical table into many physical tables. Each partition is vacuumed,
+        indexed, and queried independently. One 20-hour vacuum becomes thirty 40-minute vacuums running in parallel.
+    </p>
+
+    <div class="partition-diagram">
+        <div class="partition-box box-parent">workflows_workflowstep<br><small>(virtual parent, no storage)</small></div>
+        <div class="box-arrow">&rarr;</div>
+        <div class="partition-box box-child">2025_11</div>
+        <div class="partition-box box-child">2025_12</div>
+        <div class="partition-box box-child">2026_01</div>
+        <div class="partition-box box-child">...</div>
+        <div class="partition-box box-child">2026_05</div>
+        <div class="partition-box box-default">DEFAULT</div>
+    </div>
+
+<pre><code><span class="comment">-- The parent is virtual: PARTITION BY RANGE on the partition key</span>
+CREATE TABLE workflows_workflowstep (
+    id          BIGINT GENERATED BY DEFAULT AS IDENTITY,
+    workflow_id BIGINT NOT NULL,
+    name        VARCHAR(100) NOT NULL,
+    status      VARCHAR(20) NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL,
+    <span class="hl">PRIMARY KEY (id, created_at)  -- partition key MUST be in every unique constraint</span>
+) <span class="hl">PARTITION BY RANGE (created_at)</span>;
+
+<span class="comment">-- Each child is an ordinary table with its own indexes + vacuum</span>
+CREATE TABLE workflows_workflowstep_2026_04
+    PARTITION OF workflows_workflowstep
+    FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Live partition list</h3>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+            Each row below is a real PostgreSQL table with its own indexes and vacuum lifecycle.
+        </p>
+        <div id="partition-list"><p class="loading">Click "Seed data" to populate...</p></div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 2: Partition Pruning -->
+<!-- ================================================================== -->
+
+<div class="card card-green">
+    <span class="label label-green">Key Concept</span>
+    <h2>Partition Pruning: The Performance Win</h2>
+
+    <p class="explain">
+        When a query's <code>WHERE</code> clause includes the <strong>partition key</strong>, PostgreSQL checks
+        each partition's bounds and <strong>prunes</strong> the ones that can't match.
+        A query for March 2026 data only scans the <code>2026_03</code> partition &mdash;
+        the other 7+ partitions are never touched. Without the partition key in the filter,
+        PostgreSQL must scan <strong>every partition</strong> (an Append over all children).
+    </p>
+
+<pre><code><span class="comment"># Django ORM: partition pruning is transparent to application code</span>
+<span class="comment"># The partition key (created_at) is in the WHERE -- pruning happens</span>
+WorkflowStep.objects.filter(
+    <span class="hl">created_at__gte=date(2026, 3, 1),</span>
+    <span class="hl">created_at__lt=date(2026, 4, 1),</span>
+    workflow_id=7,
+)
+<span class="comment"># EXPLAIN shows: only workflows_workflowstep_2026_03 is scanned</span>
+
+<span class="comment"># Without the partition key -- no pruning, scans everything</span>
+WorkflowStep.objects.filter(workflow_id=7)
+<span class="comment"># EXPLAIN shows: Append across ALL partitions</span>
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Live EXPLAIN comparison</h3>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+            Side-by-side: the same query with and without the partition key in the filter.
+            Watch how many partitions appear in each plan.
+        </p>
+        <button class="btn" onclick="runPruning()" style="margin-bottom: 0.75rem;">Run EXPLAIN ANALYZE</button>
+        <div id="pruning-demo"><p class="loading">Click the button above after seeding data...</p></div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 3: Django + Composite PK -->
+<!-- ================================================================== -->
+
+<div class="card card-purple">
+    <span class="label label-purple">Leaky Abstraction</span>
+    <h2>Django 5.2 Composite Primary Keys</h2>
+
+    <p class="explain">
+        PostgreSQL requires the <strong>partition key to be part of every unique constraint</strong>, including the
+        primary key. A plain <code>PRIMARY KEY (id)</code> is rejected. You need <code>PRIMARY KEY (id, created_at)</code>.
+        <strong>Django 5.2's CompositePrimaryKey</strong> makes reads work transparently. But writes are leaky:
+        <code>CompositePrimaryKey</code> doesn't combine with <code>BigAutoField</code>, so the <code>id</code>
+        comes from a database-side <code>IDENTITY</code> sequence. ORM <code>.create()</code> can't skip the id
+        column, so inserts use raw SQL.
+    </p>
+
+<pre><code><span class="comment"># models.py -- the model uses managed=False (SQL migration owns the schema)</span>
+class WorkflowStep(models.Model):
+    <span class="hl">pk = models.CompositePrimaryKey("id", "created_at")</span>
+    id = models.BigIntegerField()        <span class="comment"># DB-side IDENTITY sequence</span>
+    created_at = models.DateTimeField()  <span class="comment"># partition key</span>
+    workflow_id = models.BigIntegerField()
+    name = models.CharField(max_length=100)
+    status = models.CharField(max_length=20)
+
+    class Meta:
+        <span class="hl">managed = False</span>  <span class="comment"># Django can't emit PARTITION BY RANGE</span>
+
+<span class="comment"># Reads: ORM just works -- composite PK is transparent to SELECT</span>
+WorkflowStep.objects.filter(status="done").count()   <span class="comment"># works</span>
+WorkflowStep.objects.order_by("created_at")[:10]     <span class="comment"># works</span>
+
+<span class="comment"># Writes: raw SQL because IDENTITY + CompositePK don't combine</span>
+with connection.cursor() as cur:
+    cur.execute("""
+        INSERT INTO workflows_workflowstep
+            (workflow_id, name, status, created_at)
+        VALUES (%s, %s, %s, %s)
+    """, [7, "validate_meter", "pending", now])
+</code></pre>
+
+    <div class="demo-area">
+        <h3>ORM queries -- live results</h3>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+            These are real Django ORM queries against the partitioned table.
+            <code>filter()</code>, <code>count()</code>, <code>values()</code>, <code>order_by()</code> all work.
+        </p>
+        <button class="btn" onclick="runOrm()" style="margin-bottom: 0.75rem;">Run ORM queries</button>
+        <div id="orm-demo"><p class="loading">Click the button above after seeding data...</p></div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 4: Migration Strategy -->
+<!-- ================================================================== -->
+
+<div class="card card-indigo">
+    <span class="label label-indigo">Practical</span>
+    <h2>Migration Strategy and Maintenance</h2>
+
+    <p class="explain">
+        Django's migration framework can't emit <code>PARTITION BY RANGE</code>.
+        Use <strong>RunSQL</strong> in a migration to create the parent and initial partitions.
+        The model is <code>managed = False</code> so Django doesn't fight you.
+        For new partitions, use another <code>RunSQL</code> migration, or automate with cron / pg_partman.
+    </p>
+
+<pre><code><span class="comment"># migrations/0001_initial.py -- RunSQL creates everything</span>
+class Migration(migrations.Migration):
+    initial = True
+    operations = [
+        <span class="hl">migrations.RunSQL(</span>
+            sql="""
+            CREATE TABLE workflows_workflowstep (
+                ...
+            ) PARTITION BY RANGE (created_at);
+
+            CREATE TABLE workflows_workflowstep_2026_04
+                PARTITION OF workflows_workflowstep
+                FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+
+            CREATE TABLE workflows_workflowstep_default
+                PARTITION OF workflows_workflowstep DEFAULT;
+            """,
+            reverse_sql="DROP TABLE IF EXISTS workflows_workflowstep CASCADE;",
+        <span class="hl">),</span>
+    ]
+
+<span class="comment"># Adding a new partition at runtime:</span>
+<span class="comment"># python manage.py add_partition 2026-06</span>
+CREATE TABLE workflows_workflowstep_2026_06
+    PARTITION OF workflows_workflowstep
+    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+</code></pre>
+
+    <p class="explain" style="margin-top: 1rem;">
+        <strong>When to partition:</strong> table over 100 GB or 100M rows, or growing toward that.
+        Below that the complexity is not worth it.<br>
+        <strong>Key &gt; Method:</strong> the partition key determines which queries can prune and which
+        unique constraints are possible. RANGE on <code>created_at</code> is the common default for
+        append-only tables.<br>
+        <strong>Packages:</strong>
+        <a href="https://github.com/SectorLabs/django-postgres-extra">django-postgres-extra</a> for native Django-style partition ops,
+        <a href="https://github.com/pgpartman/pg_partman">pg_partman</a> for scheduled maintenance,
+        <a href="https://github.com/octoenergy/psycopack">psycopack</a> for online table conversion.
+    </p>
+
+    <div class="demo-area">
+        <h3>Partition methods at a glance</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Method</th><th>When to use</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>RANGE</strong></td>
+                    <td>Time-series, monotonically growing data</td>
+                    <td><code>PARTITION BY RANGE (created_at)</code></td>
+                </tr>
+                <tr>
+                    <td><strong>LIST</strong></td>
+                    <td>Fixed small set of values (region, tenant)</td>
+                    <td><code>PARTITION BY LIST (region)</code></td>
+                </tr>
+                <tr>
+                    <td><strong>HASH</strong></td>
+                    <td>No natural grouping, just want parallelism</td>
+                    <td><code>PARTITION BY HASH (customer_id)</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// =====================================================================
+// Helpers
+// =====================================================================
+
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    return res.json();
+}
+
+function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// =====================================================================
+// Seed data
+// =====================================================================
+
+async function seedData() {
+    document.getElementById('partition-list').innerHTML = '<p class="loading">Seeding data...</p>';
+    try {
+        const data = await fetch('/test/api/seed/', { method: 'POST' }).then(r => r.json());
+        if (data.ok) {
+            refreshAll();
+        }
+    } catch (e) {
+        document.getElementById('partition-list').innerHTML =
+            '<p style="color:#991b1b;">Error: could not seed data. Is PostgreSQL running? (docker compose up -d)</p>';
+    }
+}
+
+// =====================================================================
+// Refresh all panels
+// =====================================================================
+
+function refreshAll() {
+    loadPartitions();
+}
+
+// =====================================================================
+// Card 1: Partition list
+// =====================================================================
+
+const PARTITION_COLORS = [
+    '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
+    '#10b981', '#14b8a6', '#06b6d4', '#f59e0b',
+];
+
+async function loadPartitions() {
+    try {
+        const data = await fetchJSON('/test/api/partitions/');
+        const partitions = data.partitions;
+
+        if (!partitions.length) {
+            document.getElementById('partition-list').innerHTML =
+                '<p class="loading">No partitions found. Run migrate first.</p>';
+            return;
+        }
+
+        const maxRows = Math.max(...partitions.map(p => p.approx_rows), 1);
+        let html = '<div class="bar-chart">';
+        partitions.forEach((p, i) => {
+            const pct = Math.max((p.approx_rows / maxRows) * 100, 1);
+            const color = p.name.includes('default') ? '#f59e0b' : PARTITION_COLORS[i % PARTITION_COLORS.length];
+            const isDefault = p.name.includes('default');
+            html += `
+                <div class="bar-row">
+                    <span class="bar-label">${esc(p.name)}</span>
+                    <div class="bar-fill" style="width: ${pct}%; background: ${color};">
+                        ${p.approx_rows > 50 ? p.approx_rows : ''}
+                    </div>
+                    <span class="bar-count">
+                        ${p.approx_rows} rows, ${p.total_size}
+                        ${isDefault ? ' <span class="badge badge-default">DEFAULT</span>' : ''}
+                    </span>
+                </div>`;
+        });
+        html += '</div>';
+
+        // Also show the table
+        html += '<table class="data-table" style="margin-top: 1rem;">';
+        html += '<thead><tr><th>Partition</th><th>Bounds</th><th>~ Rows</th><th>Size</th></tr></thead><tbody>';
+        partitions.forEach(p => {
+            html += `<tr>
+                <td><code>${esc(p.name)}</code></td>
+                <td style="font-size:0.8rem;">${esc(p.bounds)}</td>
+                <td style="text-align:right;">${p.approx_rows}</td>
+                <td>${esc(p.total_size)}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+
+        document.getElementById('partition-list').innerHTML = html;
+    } catch (e) {
+        document.getElementById('partition-list').innerHTML =
+            '<p style="color:#991b1b;">Error loading partitions. Is PostgreSQL running?</p>';
+    }
+}
+
+// =====================================================================
+// Card 2: Pruning comparison
+// =====================================================================
+
+function highlightPlan(lines, withKey) {
+    return lines.map(line => {
+        let cls = '';
+        if (line.includes('Seq Scan') || line.includes('Index Scan') || line.includes('Bitmap')) {
+            if (withKey) {
+                // In with-key mode, only the target partition is scanned
+                cls = 'scanned';
+            } else {
+                cls = '';
+            }
+        }
+        if (line.includes('Append')) {
+            cls = 'append-node';
+        }
+        // Highlight partition names
+        let display = esc(line);
+        display = display.replace(/(workflows_workflowstep_\w+)/g, '<strong>$1</strong>');
+        if (line.includes('never executed')) {
+            cls = 'pruned';
+        }
+        return `<div class="${cls}">${display}</div>`;
+    }).join('');
+}
+
+async function runPruning() {
+    document.getElementById('pruning-demo').innerHTML = '<p class="loading">Running EXPLAIN ANALYZE...</p>';
+    try {
+        const data = await fetchJSON('/test/api/pruning/');
+
+        let html = '<div class="comparison">';
+
+        // With key
+        html += '<div class="comparison-col">';
+        html += '<span class="tag tag-good">WITH partition key</span>';
+        html += `<h4>${esc(data.with_key.label)}</h4>`;
+        html += `<p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">${data.with_key.count} rows matched</p>`;
+        html += `<div class="explain-output">${highlightPlan(data.with_key.plan, true)}</div>`;
+        html += '</div>';
+
+        // Without key
+        html += '<div class="comparison-col">';
+        html += '<span class="tag tag-bad">WITHOUT partition key</span>';
+        html += `<h4>${esc(data.without_key.label)}</h4>`;
+        html += `<p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">${data.without_key.count} rows matched</p>`;
+        html += `<div class="explain-output">${highlightPlan(data.without_key.plan, false)}</div>`;
+        html += '</div>';
+
+        html += '</div>';
+
+        // Summary
+        const withPartitions = data.with_key.plan.filter(l =>
+            l.includes('workflows_workflowstep_') && !l.includes('never executed')
+        ).length;
+        const withoutPartitions = data.without_key.plan.filter(l =>
+            l.includes('workflows_workflowstep_') && !l.includes('never executed')
+        ).length;
+
+        html += '<p style="font-size:0.85rem; margin-top:0.75rem; color:#374151;">';
+        html += `<strong>Result:</strong> With partition key: ~${withPartitions} partition(s) scanned. `;
+        html += `Without: ${withoutPartitions} partitions scanned (all of them).`;
+        html += '</p>';
+
+        document.getElementById('pruning-demo').innerHTML = html;
+    } catch (e) {
+        document.getElementById('pruning-demo').innerHTML =
+            '<p style="color:#991b1b;">Error: ' + esc(e.message) + '</p>';
+    }
+}
+
+// =====================================================================
+// Card 3: ORM demo
+// =====================================================================
+
+async function runOrm() {
+    document.getElementById('orm-demo').innerHTML = '<p class="loading">Running ORM queries...</p>';
+    try {
+        const data = await fetchJSON('/test/api/orm/');
+
+        let html = '';
+
+        // Total
+        html += `<p style="font-size: 0.9rem; margin-bottom: 0.75rem;">`;
+        html += `<strong>WorkflowStep.objects.count()</strong> = ${data.total}`;
+        html += `</p>`;
+
+        // Status counts
+        html += '<h4 style="font-size:0.9rem; margin-bottom:0.5rem;">.values("status").annotate(n=Count("id"))</h4>';
+        html += '<table class="data-table"><thead><tr><th>Status</th><th style="text-align:right;">Count</th></tr></thead><tbody>';
+        data.status_counts.forEach(row => {
+            html += `<tr><td>${esc(row.status)}</td><td style="text-align:right;">${row.n}</td></tr>`;
+        });
+        html += '</tbody></table>';
+
+        // First rows
+        html += '<h4 style="font-size:0.9rem; margin: 0.75rem 0 0.5rem;">.order_by("created_at")[:5]</h4>';
+        html += '<table class="data-table"><thead><tr><th>ID</th><th>Created</th><th>Name</th><th>Status</th><th>Workflow</th></tr></thead><tbody>';
+        data.first_rows.forEach(row => {
+            html += `<tr>
+                <td>${row.id}</td>
+                <td style="font-size:0.8rem;">${esc(row.created_at)}</td>
+                <td>${esc(row.name)}</td>
+                <td>${esc(row.status)}</td>
+                <td>${row.workflow_id}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+
+        html += '<p style="font-size:0.8rem; color:#6b7280; margin-top:0.75rem;">All of the above is routed through the partition parent. Postgres picks the right partition(s) -- Django never sees them.</p>';
+
+        document.getElementById('orm-demo').innerHTML = html;
+    } catch (e) {
+        document.getElementById('orm-demo').innerHTML =
+            '<p style="color:#991b1b;">Error: ' + esc(e.message) + '</p>';
+    }
+}
+
+// =====================================================================
+// Init
+// =====================================================================
+
+// Try to load partitions on page load (may fail if no PG)
+loadPartitions();
+</script>
+</body>
+</html>

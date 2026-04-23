@@ -44,9 +44,9 @@ class Location(MP_Node):
     node_order_by = ["name"]
 
     def __str__(self) -> str:
-        # Breadcrumb from root to here: "USA → New Mexico → Carlsbad Caverns"
+        # Breadcrumb from root to here: "USA > New Mexico > Carlsbad Caverns"
         ancestors = list(self.get_ancestors()) + [self]
-        return " → ".join(a.name for a in ancestors)
+        return " > ".join(a.name for a in ancestors)
 
 
 class IncidentSeverity(models.TextChoices):

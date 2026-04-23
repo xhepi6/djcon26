@@ -14,8 +14,8 @@ from incidents.operations import get_registry
 
 
 SYMBOL = {
-    OperationStatus.SUCCESS: "✓",
-    OperationStatus.FAILED:  "✗",
+    OperationStatus.SUCCESS: "OK",
+    OperationStatus.FAILED:  "FAIL",
     OperationStatus.SKIPPED: "-",
 }
 
@@ -43,8 +43,8 @@ class Command(BaseCommand):
                 status = status_map.get((incident.id, name), "")
                 cells.append(f"{SYMBOL.get(status, ' '):>8}")
 
-            when = str(incident.occurred_at) if incident.occurred_at else "—"
-            where = str(incident.location) if incident.location else "—"
+            when = str(incident.occurred_at) if incident.occurred_at else "--"
+            where = str(incident.location) if incident.location else "--"
             self.stdout.write(
                 f"{incident.id:>3}  {'  '.join(cells)}   "
                 f"{incident.severity:<10} {when:<17} {where}"

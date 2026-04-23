@@ -1,9 +1,9 @@
 """
-Settings for the caving-incidents pipeline demo.
+Settings for the partitioning demo.
 
-Connection defaults match the bundled docker-compose.yml (Postgres on
-localhost:55433). Override with DB_HOST/DB_PORT etc. if you want to point
-at something else.
+Single Postgres database. Connection defaults match the bundled
+docker-compose.yml (port 55432 on localhost). Override with DATABASE_URL-style
+env vars if you want to point at something else.
 """
 
 import os
@@ -18,8 +18,7 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
-    "treebeard",       # django-treebeard for the Location MP_Node tree
-    "incidents",
+    "workflows",
 ]
 
 MIDDLEWARE = []
@@ -29,7 +28,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {"context_processors": []},
     },
@@ -38,11 +37,11 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "incidents"),
-        "USER": os.environ.get("DB_USER", "incidents"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "incidents"),
+        "NAME": os.environ.get("DB_NAME", "partitioning"),
+        "USER": os.environ.get("DB_USER", "partitioning"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "partitioning"),
         "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
-        "PORT": os.environ.get("DB_PORT", "55433"),
+        "PORT": os.environ.get("DB_PORT", "55432"),
     },
 }
 

@@ -131,11 +131,9 @@ with connection.cursor() as cur:
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project with a partitioned workflow-steps table, 7 monthly partitions, a DEFAULT partition, and management commands that demonstrate the mechanics end-to-end.
+This folder is a runnable Django project with a partitioned workflow-steps table, 7 monthly partitions, a DEFAULT partition, and management commands that demonstrate the mechanics end-to-end. **Requires PostgreSQL.**
 
 ```bash
-cd experiment
-
 # Postgres in docker (exposes 55432 on the host — no collision with local PG)
 docker compose up -d
 docker compose exec db pg_isready -U partitioning   # wait for "accepting connections"
@@ -149,9 +147,17 @@ python manage.py demo_pruning        # EXPLAIN with partition-key filter → 1 p
 python manage.py demo_pruning --no-partition-key   # EXPLAIN without → Append over all partitions
 python manage.py demo_orm            # regular Django querysets against the partitioned table
 python manage.py add_partition 2026-06
+python manage.py runserver
 ```
 
-What each command shows:
+Routes:
+
+| Route | Description |
+|---|---|
+| `/` | Home page with command reference |
+| `/test/` | Interactive test panel — partition viewer, pruning demo, ORM queries |
+
+What each management command shows:
 
 | Command | Demonstrates |
 |---|---|
@@ -168,6 +174,8 @@ Key files:
 - `workflows/migrations/0001_initial.py` — parent `PARTITION BY RANGE` + 7 monthly partitions + `DEFAULT`
 - `workflows/management/commands/demo_pruning.py` — builds the queryset, prints the SQL, runs `EXPLAIN ANALYZE`
 - `workflows/management/commands/show_partitions.py` — pg_inherits / pg_class lookup for per-partition stats
+- `test_views.py` — API endpoints for the interactive test panel (partition list, pruning demo, ORM queries)
+- `templates/test.html` — interactive test panel with code explanations and live demos
 
 ## Key Takeaways
 

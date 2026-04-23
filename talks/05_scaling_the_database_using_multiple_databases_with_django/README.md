@@ -171,18 +171,31 @@ Requires `TransactionTestCase` (not `TestCase`) when using `TEST.MIRROR` — the
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project that demonstrates all three challenges with a **fake replication** model: two SQLite files, `primary.sqlite3` and `replica.sqlite3`, and a `sync_replica` command that copies one into the other. This lets you *see* the replication lag in a single process.
+This folder is a runnable Django project that demonstrates all three challenges with a **fake replication** model: two SQLite files, `primary.sqlite3` and `replica.sqlite3`, and a `sync_replica` command that copies one into the other. This lets you *see* the replication lag in a single process.
 
 ```bash
-cd experiment
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data       # populates primary, syncs to replica
-python manage.py demo_lag        # write to primary, read from replica before sync
-python manage.py demo_atomic     # transaction + read-your-own-writes
-python manage.py demo_get_or_create
-python manage.py demo_gfk_bug    # reproduces Django #36389 and the workaround
-python manage.py test scaling    # runs the bug reproduction as a TransactionTestCase
+python manage.py runserver
+```
+
+Routes:
+
+| Route | Description |
+|---|---|
+| `/` | Home page with available commands |
+| `/test/` | Interactive test panel -- run all demos from the browser |
+
+Management commands:
+
+```bash
+python manage.py demo_lag            # write to primary, read from replica before sync
+python manage.py demo_atomic         # transaction + read-your-own-writes
+python manage.py demo_get_or_create  # standard vs replica-aware get_or_create
+python manage.py demo_gfk_bug       # reproduces Django #36389 and the workaround
+python manage.py sync_replica        # copy primary -> replica to simulate replication
+python manage.py test scaling        # runs the bug reproduction as a TransactionTestCase
 ```
 
 You can also toggle the router mode via an env var to see the failure modes:
@@ -206,8 +219,10 @@ Key files:
 - `scaling/routers.py` — both `NaiveRouter` and the full `PrimaryReplicaRouter`
 - `scaling/helpers.py` — `replica_aware_get_or_create`
 - `scaling/models.py` — two tiny apps, one with a `GenericForeignKey` for the bug demo
-- `scaling/management/commands/sync_replica.py` — copies primary → replica to simulate replication
+- `scaling/management/commands/sync_replica.py` — copies primary -> replica to simulate replication
 - `scaling/tests.py` — the GFK write-routing bug reproduced as a `TransactionTestCase`
+- `test_views.py` — test panel API endpoints (separated from app code)
+- `templates/test.html` — interactive test panel UI
 
 ## Key Takeaways
 

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 07 -- Digitising Historical Caving Data</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: #666; margin-bottom: 2rem; font-size: .9rem; }
+  h2 { font-size: 1.15rem; margin-bottom: .75rem; color: #333; }
+  h3 { font-size: 1rem; margin-bottom: .5rem; color: #444; }
+
+  /* Cards */
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .card p { margin-bottom: .5rem; font-size: .88rem; color: #444; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* Concept cards with colored left borders */
+  .concept { border-left: 4px solid #ddd; }
+  .concept-amber { border-left-color: #f59e0b; }
+  .concept-green { border-left-color: #10b981; }
+  .concept-purple { border-left-color: #8b5cf6; }
+  .concept-indigo { border-left-color: #6366f1; }
+
+  .concept .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .concept .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; flex-shrink: 0; color: #fff; }
+  .concept-amber .number { background: #f59e0b; }
+  .concept-green .number { background: #10b981; }
+  .concept-purple .number { background: #8b5cf6; }
+  .concept-indigo .number { background: #6366f1; }
+  .concept .header h2 { margin: 0; font-size: 1.05rem; }
+
+  .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+  .explanation strong { color: #1a1a1a; }
+
+  /* Buttons */
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+  button { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+  button:hover { background: #f0f0f0; }
+  button.amber { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  button.amber:hover { background: #d97706; }
+  button.green { background: #10b981; color: #fff; border-color: #10b981; }
+  button.green:hover { background: #059669; }
+  button.purple { background: #8b5cf6; color: #fff; border-color: #8b5cf6; }
+  button.purple:hover { background: #7c3aed; }
+  button.indigo { background: #6366f1; color: #fff; border-color: #6366f1; }
+  button.indigo:hover { background: #4f46e5; }
+  button.red { background: #ef4444; color: #fff; border-color: #ef4444; }
+  button.red:hover { background: #dc2626; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Result box */
+  .result { border-radius: 6px; padding: .75rem 1rem; font-size: .85rem; margin-top: .75rem; display: none; }
+  .result.show { display: block; }
+  .result-ok { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }
+  .result-warn { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; }
+  .result-bad { background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
+  .result strong { display: block; margin-bottom: .25rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; padding: .5rem .75rem; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: .8rem; color: #555; }
+  td { padding: .5rem .75rem; border-bottom: 1px solid #eee; }
+  .empty-row td { color: #999; text-align: center; padding: 1.5rem; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+  .badge-success { background: #d1e7dd; color: #0f5132; }
+  .badge-failed { background: #f8d7da; color: #842029; }
+  .badge-pending { background: #e2e3e5; color: #41464b; }
+  .badge-skipped { background: #fff3cd; color: #856404; }
+  .badge-unknown { background: #e2e3e5; color: #41464b; }
+  .badge-minor { background: #cff4fc; color: #055160; }
+  .badge-injury { background: #fff3cd; color: #856404; }
+  .badge-rescue { background: #ffe5d0; color: #984c0c; }
+  .badge-fatal { background: #f8d7da; color: #842029; }
+
+  /* Code */
+  pre { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .85rem 1rem; overflow-x: auto; font-size: .78rem; line-height: 1.6; margin: .5rem 0; }
+  pre .kw { color: #569cd6; }
+  pre .fn { color: #dcdcaa; }
+  pre .str { color: #ce9178; }
+  pre .cmt { color: #6a9955; }
+  pre .cls { color: #4ec9b0; }
+  pre .hl { background: rgba(255, 213, 79, 0.15); display: inline; }
+  pre .bad { background: rgba(244, 67, 54, 0.15); display: inline; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; font-size: .82rem; }
+  .flow .step { padding: .3rem .6rem; border-radius: 5px; white-space: nowrap; }
+  .flow .step-ocr { background: #e3f2fd; border: 1px solid #bbdefb; }
+  .flow .step-seg { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  .flow .step-rewrite { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .flow .step-critic { background: #fce4ec; border: 1px solid #f8bbd0; }
+  .flow .step-struct { background: #f3e5f5; border: 1px solid #e1bee7; }
+  .flow .arrow { color: #999; font-weight: bold; }
+
+  /* Tree visualization */
+  .tree-node { padding: .2rem 0; font-size: .84rem; }
+  .tree-node .node-name { font-weight: 600; }
+  .tree-node .node-level { color: #888; font-size: .76rem; }
+  .tree-node .node-count { color: #666; font-size: .76rem; }
+
+  /* Storage format table */
+  .storage-table td:nth-child(3) { font-family: monospace; font-size: .8rem; color: #6366f1; }
+
+  section { margin-bottom: 1.75rem; }
+  .section-divider { border: 0; border-top: 2px solid #eee; margin: 2rem 0; }
+  .loading { color: #888; font-style: italic; font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<h1>Talk 07 -- Digitising Historical Caving Data</h1>
+<p class="subtitle">Sixty years of caving incidents trapped in scanned PDFs. This pipeline turns them into a structured, queryable Django database using OCR, LLMs for cleanup, a self-check pattern, a custom date field, and a tree for locations.</p>
+
+<!-- ============================================================ -->
+<!-- PIPELINE OVERVIEW -->
+<!-- ============================================================ -->
+<section>
+<div class="card">
+  <h2>The Five-Stage Pipeline</h2>
+  <p>Every incident report goes through these steps. Each is an independent, pluggable operation class.</p>
+  <div class="flow">
+    <span class="step step-ocr">1. OCR (Docling)</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-seg">2. Segmentation</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-rewrite">3. LLM Rewrite</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-critic">4. LLM Critic</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-struct">5. Structuring</span>
+  </div>
+  <p>This demo implements stages 3-5 with fake (deterministic) LLM stubs. The architecture -- pluggable steps, dependency tracking, failure recording -- is what matters, not the LLM prompts.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CONCEPT 1: PLUGGABLE OPERATIONS -->
+<!-- ============================================================ -->
+<section>
+<div class="card concept concept-amber">
+  <div class="header">
+    <div class="number">1</div>
+    <h2>Pluggable Processing Steps</h2>
+  </div>
+
+  <div class="explanation">
+    <strong>What it proves:</strong> Every pipeline step is an <code>Operation</code> subclass with a tiny contract: <code>should_run(incident)</code> + <code>run(incident)</code>. A <code>@register</code> decorator adds it to the pipeline. Dependencies are declared via <code>requires = [OtherOp]</code>. New step = new file. No central list, no if-ladder.
+  </div>
+
+<pre><span class="cmt"># incidents/operations/base.py</span>
+<span class="kw">class</span> <span class="cls">Operation</span>:
+    requires: list[type[<span class="str">"Operation"</span>]] = []
+
+    <span class="kw">def</span> <span class="fn">should_run</span>(self, incident) -> bool:
+        <span class="kw">return</span> <span class="kw">True</span>
+
+    <span class="kw">def</span> <span class="fn">run</span>(self, incident) -> None:
+        <span class="kw">raise</span> NotImplementedError
+
+<span class="hl"><span class="kw">def</span> <span class="fn">register</span>(op_cls):            <span class="cmt"># decorator: adds to pipeline</span></span>
+<span class="hl">    _REGISTRY.append(op_cls)</span>
+<span class="hl">    <span class="kw">return</span> op_cls</span></pre>
+
+<pre><span class="cmt"># incidents/operations/classify_severity.py</span>
+<span class="hl">@register</span>
+<span class="kw">class</span> <span class="cls">ClassifySeverity</span>(Operation):
+    <span class="hl">requires = [FakeLLMRewrite]</span>    <span class="cmt"># won't run until rewrite succeeds</span>
+
+    <span class="kw">def</span> <span class="fn">run</span>(self, incident):
+        text = incident.cleaned_text.lower()
+        <span class="kw">for</span> keyword, severity <span class="kw">in</span> KEYWORDS:
+            <span class="kw">if</span> keyword <span class="kw">in</span> text:
+                incident.severity = severity
+                incident.save(update_fields=[<span class="str">"severity"</span>])</pre>
+
+  <p>The runner iterates operations x incidents, records an <code>OperationRun</code> row per attempt, and respects dependencies.</p>
+
+  <div class="actions">
+    <button class="amber" onclick="runPipeline()">Run Pipeline</button>
+    <button class="amber" onclick="rerunPipeline()">Re-run From Scratch</button>
+    <button class="red" onclick="resetAndSeed()">Reset + Seed + Process</button>
+  </div>
+  <div id="pipeline-result" class="result"></div>
+</div>
+</section>
+
+<!-- Pipeline status table -->
+<section>
+<div class="card">
+  <h2>Pipeline Status Dashboard</h2>
+  <p>Each cell shows the result of that operation on that incident. This is what <code>show_pipeline</code> renders in the terminal.</p>
+  <div id="pipeline-table-container"><span class="loading">Loading...</span></div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- CONCEPT 2: SELF-CHECK (CRITIC) PATTERN -->
+<!-- ============================================================ -->
+<section>
+<div class="card concept concept-green">
+  <div class="header">
+    <div class="number">2</div>
+    <h2>Self-Check: The Critic Pattern</h2>
+  </div>
+
+  <div class="explanation">
+    <strong>What it proves:</strong> A second LLM pass grades the first. If the output still looks bad, the step records <code>FAILED</code> without crashing the pipeline. Incident #8 has unresolvable <code>???</code> placeholders -- the critic catches this and flags it. The pipeline keeps running; failures surface in the dashboard.
+  </div>
+
+<pre><span class="cmt"># The rewrite step cleans OCR artifacts but CANNOT resolve ???</span>
+raw:     <span class="str">"Party of three descended ??? pitch; ??? injury sustained."</span>
+cleaned: <span class="str">"Party of three descended ??? pitch; ??? injury sustained."</span>
+
+<span class="cmt"># The critic checks for suspicious patterns:</span>
+SUSPICIOUS = [
+    re.compile(r<span class="str">"\?{2,}"</span>),           <span class="cmt"># unreadable-glyph placeholder</span>
+    re.compile(r<span class="str">"\s{2,}"</span>),           <span class="cmt"># leftover double whitespace</span>
+]
+
+<span class="cmt"># If any match, the critic raises -> recorded as FAILED</span>
+<span class="bad"><span class="kw">raise</span> ValueError(<span class="str">"cleaned_text still contains: \\?{2,}"</span>)</span></pre>
+
+  <div id="failures-container"><span class="loading">Loading...</span></div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- CONCEPT 3: FUZZY DATE FIELD -->
+<!-- ============================================================ -->
+<section>
+<div class="card concept concept-purple">
+  <div class="header">
+    <div class="number">3</div>
+    <h2>Custom FuzzyDate Model Field</h2>
+  </div>
+
+  <div class="explanation">
+    <strong>What it proves:</strong> Historical dates come in many precisions: <code>"1971"</code>, <code>"August 1985"</code>, <code>"Autumn 1996"</code>, <code>"15 March 2024"</code>. A plain <code>DateField</code> forces false specificity. <code>FuzzyDate</code> stores precision alongside the date in a single, lexicographically-sortable string. The three Django hooks -- <code>to_python</code> / <code>from_db_value</code> / <code>get_prep_value</code> -- are the whole custom-field pattern in ~30 lines.
+  </div>
+
+<pre><span class="cmt"># The three hooks that make a custom model field:</span>
+
+<span class="kw">class</span> <span class="cls">FuzzyDateField</span>(models.CharField):
+    <span class="hl"><span class="kw">def</span> <span class="fn">from_db_value</span>(self, value, expression, connection):</span>
+        <span class="cmt"># DB -> Python (on every query row)</span>
+        <span class="kw">return</span> FuzzyDate.from_storage(value)
+
+    <span class="hl"><span class="kw">def</span> <span class="fn">to_python</span>(self, value):</span>
+        <span class="cmt"># Forms/fixtures/assignments -> Python</span>
+        <span class="kw">return</span> FuzzyDate.from_storage(value)
+
+    <span class="hl"><span class="kw">def</span> <span class="fn">get_prep_value</span>(self, value):</span>
+        <span class="cmt"># Python -> DB (on every save)</span>
+        <span class="kw">return</span> value.to_storage()</pre>
+
+  <h3>Storage Format</h3>
+  <p>Each date stores as a single TEXT column. The format is lexicographically sortable, so chronological ordering works without any special SQL.</p>
+  <div id="fuzzy-dates-container"><span class="loading">Loading...</span></div>
+
+  <h3 style="margin-top: 1rem;">Dates From The Database</h3>
+  <p>These are the actual <code>occurred_at</code> values on the seeded incidents, showing every precision level in use.</p>
+  <div id="incident-dates-container"><span class="loading">Loading...</span></div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- CONCEPT 4: TREE-STRUCTURED LOCATIONS -->
+<!-- ============================================================ -->
+<section>
+<div class="card concept concept-indigo">
+  <div class="header">
+    <div class="number">4</div>
+    <h2>Tree-Structured Locations (django-treebeard)</h2>
+  </div>
+
+  <div class="explanation">
+    <strong>What it proves:</strong> Incident locations have variable depth. Some reports say <code>"Arizona"</code> (state), others say <code>"Carlsbad Caverns, New Mexico, USA"</code> (region). A flat schema with nullable <code>country/state/region/cave</code> columns cannot represent this cleanly. <code>MP_Node</code> (Materialized Path) makes each node store its path as a compact string. <code>get_descendants()</code> gives you "all incidents in the USA" in a single query.
+  </div>
+
+<pre><span class="kw">from</span> treebeard.mp_tree <span class="kw">import</span> MP_Node
+
+<span class="kw">class</span> <span class="cls">Location</span>(MP_Node):
+    name = models.CharField(max_length=100)
+    level = models.CharField(max_length=20, choices=LocationLevel.choices)
+    <span class="hl">node_order_by = [<span class="str">"name"</span>]</span>
+
+<span class="cmt"># Building the tree:</span>
+usa = Location.add_root(name=<span class="str">"USA"</span>, level=<span class="str">"country"</span>)
+nm = usa.add_child(name=<span class="str">"New Mexico"</span>, level=<span class="str">"state"</span>)
+nm.add_child(name=<span class="str">"Carlsbad Caverns"</span>, level=<span class="str">"region"</span>)
+
+<span class="cmt"># All incidents anywhere in the USA (one query!):</span>
+<span class="hl">Incident.objects.filter(location__in=usa.get_descendants())</span></pre>
+
+  <h3>Location Tree</h3>
+  <p>Built from the seeded data. Notice "Arizona" attaches at state level (no region/cave) while "Carlsbad Caverns" is three levels deep.</p>
+  <div id="tree-container"><span class="loading">Loading...</span></div>
+
+  <h3 style="margin-top: 1rem;">Try a Descendant Query</h3>
+  <p>Pick a location node. The query counts all incidents at that node or anywhere below it in the tree.</p>
+  <div class="actions">
+    <button class="indigo" onclick="treeQuery('USA')">USA</button>
+    <button class="indigo" onclick="treeQuery('Mexico')">Mexico</button>
+    <button class="indigo" onclick="treeQuery('Kentucky')">Kentucky</button>
+    <button class="indigo" onclick="treeQuery('New Mexico')">New Mexico</button>
+    <button class="indigo" onclick="treeQuery('Arizona')">Arizona</button>
+    <button class="indigo" onclick="treeQuery('Florida')">Florida</button>
+  </div>
+  <div id="tree-query-result" class="result"></div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- ALL INCIDENTS DETAIL -->
+<!-- ============================================================ -->
+<section>
+<div class="card">
+  <h2>All Incidents (Raw vs Structured)</h2>
+  <p>Each row shows what the pipeline extracted from the raw OCR text. The raw text has deliberate artifacts (double spaces, hyphenated words, <code>???</code> placeholders) that the operations fix or flag.</p>
+  <div id="incidents-detail-container"><span class="loading">Loading...</span></div>
+</div>
+</section>
+
+<script>
+const API = {
+  state:    '/test/api/state/',
+  fuzzy:    '/test/api/fuzzy-dates/',
+  reset:    '/test/api/reset-seed/',
+  run:      '/test/api/run-pipeline/',
+  rerun:    '/test/api/rerun-pipeline/',
+  tree:     '/test/api/tree-query/',
+};
+
+// ----------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------
+function badge(status) {
+  const cls = {
+    success: 'badge-success', failed: 'badge-failed',
+    pending: 'badge-pending', skipped: 'badge-skipped',
+  }[status] || 'badge-pending';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+function severityBadge(sev) {
+  const cls = {
+    unknown: 'badge-unknown', minor: 'badge-minor',
+    injury: 'badge-injury', rescue: 'badge-rescue', fatal: 'badge-fatal',
+  }[sev] || 'badge-unknown';
+  return `<span class="badge ${cls}">${sev}</span>`;
+}
+
+function showResult(id, cls, html) {
+  const el = document.getElementById(id);
+  el.className = `result show ${cls}`;
+  el.innerHTML = html;
+}
+
+async function post(url) {
+  const r = await fetch(url, { method: 'POST' });
+  return r.json();
+}
+
+// ----------------------------------------------------------------
+// Pipeline actions
+// ----------------------------------------------------------------
+async function resetAndSeed() {
+  showResult('pipeline-result', 'result-warn', 'Resetting and processing...');
+  const data = await post(API.reset);
+  showResult('pipeline-result', 'result-ok', `<strong>Done</strong>${data.message}`);
+  loadState();
+}
+
+async function runPipeline() {
+  showResult('pipeline-result', 'result-warn', 'Running pipeline...');
+  const data = await post(API.run);
+  showResult('pipeline-result', 'result-ok', `<strong>Pipeline output:</strong><pre style="background:#f8f9fa;color:#333;padding:.5rem;margin-top:.25rem">${data.output}</pre>`);
+  loadState();
+}
+
+async function rerunPipeline() {
+  showResult('pipeline-result', 'result-warn', 'Re-running pipeline from scratch...');
+  const data = await post(API.rerun);
+  showResult('pipeline-result', 'result-ok', `<strong>Pipeline output:</strong><pre style="background:#f8f9fa;color:#333;padding:.5rem;margin-top:.25rem">${data.output}</pre>`);
+  loadState();
+}
+
+// ----------------------------------------------------------------
+// Tree query
+// ----------------------------------------------------------------
+async function treeQuery(name) {
+  const r = await fetch(`${API.tree}?node=${encodeURIComponent(name)}`);
+  const data = await r.json();
+  if (!data.ok) {
+    showResult('tree-query-result', 'result-bad', `<strong>Error</strong>${data.error}`);
+    return;
+  }
+  showResult('tree-query-result', 'result-ok',
+    `<strong>${data.breadcrumb}</strong>` +
+    `Level: ${data.level} | ` +
+    `Descendant locations: ${data.descendant_locations} | ` +
+    `<strong>Incidents in this subtree: ${data.incident_count}</strong>`
+  );
+}
+
+// ----------------------------------------------------------------
+// Load and render state
+// ----------------------------------------------------------------
+async function loadState() {
+  const r = await fetch(API.state);
+  const data = await r.json();
+  renderPipelineTable(data);
+  renderFailures(data);
+  renderTree(data.tree);
+  renderIncidentDates(data.incidents);
+  renderIncidentsDetail(data.incidents, data.op_names);
+
+  // Also load fuzzy date demo
+  const fr = await fetch(API.fuzzy);
+  const fd = await fr.json();
+  renderFuzzyDates(fd.dates);
+}
+
+function renderPipelineTable(data) {
+  const { incidents, op_names, summary } = data;
+  if (!incidents.length) {
+    document.getElementById('pipeline-table-container').innerHTML =
+      '<p style="color:#999">No incidents. Click "Reset + Seed + Process" above.</p>';
+    return;
+  }
+
+  let html = `<p style="font-size:.84rem;margin-bottom:.75rem">
+    <strong>${summary.total}</strong> incidents |
+    <span class="badge badge-success">${summary.success} success</span>
+    <span class="badge badge-failed">${summary.failed} failed</span>
+  </p>`;
+
+  html += '<table><thead><tr><th>#</th>';
+  for (const op of op_names) {
+    html += `<th>${op.replace(/([A-Z])/g, ' $1').trim()}</th>`;
+  }
+  html += '<th>Severity</th><th>When</th><th>Where</th></tr></thead><tbody>';
+
+  for (const inc of incidents) {
+    html += `<tr><td>${inc.id}</td>`;
+    for (const op of op_names) {
+      const info = inc.operations[op];
+      let cell = badge(info.status);
+      if (info.error) {
+        cell += ` <span style="font-size:.72rem;color:#842029" title="${info.error}">!</span>`;
+      }
+      html += `<td>${cell}</td>`;
+    }
+    html += `<td>${severityBadge(inc.severity)}</td>`;
+    html += `<td>${inc.occurred_at || '--'}</td>`;
+    html += `<td>${inc.location || '--'}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('pipeline-table-container').innerHTML = html;
+}
+
+function renderFailures(data) {
+  const failures = [];
+  for (const inc of data.incidents) {
+    for (const [op, info] of Object.entries(inc.operations)) {
+      if (info.status === 'failed') {
+        failures.push({ id: inc.id, op, error: info.error });
+      }
+    }
+  }
+
+  let html = '';
+  if (failures.length) {
+    html += '<h3 style="margin-top:.75rem">Caught Failures</h3>';
+    html += '<table><thead><tr><th>Incident</th><th>Operation</th><th>Error</th></tr></thead><tbody>';
+    for (const f of failures) {
+      html += `<tr><td>#${f.id}</td><td>${f.op}</td><td style="font-family:monospace;font-size:.8rem;color:#842029">${f.error}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    html += '<p style="margin-top:.5rem;font-size:.84rem;color:#666">The pipeline did not crash. It recorded the failure and moved on. This is the whole point of the critic pattern.</p>';
+  } else {
+    html += '<p style="color:#999;margin-top:.5rem">No failures detected (run the pipeline first).</p>';
+  }
+  document.getElementById('failures-container').innerHTML = html;
+}
+
+function renderFuzzyDates(dates) {
+  let html = '<table class="storage-table"><thead><tr><th>Precision</th><th>Human Display</th><th>Storage Format (DB)</th></tr></thead><tbody>';
+  for (const d of dates) {
+    html += `<tr><td>${d.precision}</td><td>${d.display}</td><td>${d.storage}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += '<p style="font-size:.82rem;color:#666;margin-top:.5rem">The storage string sorts lexicographically in chronological order. No special SQL needed for ORDER BY.</p>';
+  document.getElementById('fuzzy-dates-container').innerHTML = html;
+}
+
+function renderIncidentDates(incidents) {
+  const dated = incidents.filter(i => i.occurred_at);
+  if (!dated.length) {
+    document.getElementById('incident-dates-container').innerHTML = '<p style="color:#999">No dates yet. Seed and process first.</p>';
+    return;
+  }
+
+  let html = '<table class="storage-table"><thead><tr><th>#</th><th>Raw Input</th><th>Stored As</th><th>Displays As</th></tr></thead><tbody>';
+  for (const inc of dated) {
+    html += `<tr><td>${inc.id}</td><td>${inc.raw_date_text}</td><td>${inc.occurred_at_storage || '--'}</td><td>${inc.occurred_at}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('incident-dates-container').innerHTML = html;
+}
+
+function renderTree(tree) {
+  if (!tree.length) {
+    document.getElementById('tree-container').innerHTML = '<p style="color:#999">No locations yet. Seed and process first.</p>';
+    return;
+  }
+
+  function renderNode(node, depth) {
+    const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(depth);
+    let html = `<div class="tree-node">${indent}<span class="node-name">${node.name}</span> <span class="node-level">[${node.level}]</span> <span class="node-count">(${node.incident_count} incident${node.incident_count !== 1 ? 's' : ''} here)</span></div>`;
+    for (const child of node.children) {
+      html += renderNode(child, depth + 1);
+    }
+    return html;
+  }
+
+  let html = '<div style="font-family: monospace; background: #f8f9fa; border-radius: 6px; padding: .75rem 1rem;">';
+  for (const root of tree) {
+    html += renderNode(root, 0);
+  }
+  html += '</div>';
+  document.getElementById('tree-container').innerHTML = html;
+}
+
+function renderIncidentsDetail(incidents, op_names) {
+  if (!incidents.length) {
+    document.getElementById('incidents-detail-container').innerHTML = '<p style="color:#999">No incidents. Seed and process first.</p>';
+    return;
+  }
+
+  let html = '';
+  for (const inc of incidents) {
+    const hasFail = Object.values(inc.operations).some(o => o.status === 'failed');
+    const borderColor = hasFail ? '#ef4444' : '#10b981';
+
+    html += `<div class="card" style="border-left: 3px solid ${borderColor}; padding: .75rem 1rem;">`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">`;
+    html += `<strong>Incident #${inc.id}</strong>`;
+    html += `<span>${severityBadge(inc.severity)} ${inc.occurred_at || ''} ${inc.location ? '-- ' + inc.location : ''}</span>`;
+    html += `</div>`;
+    html += `<table style="font-size:.82rem"><tbody>`;
+    html += `<tr><td style="width:120px;font-weight:600;color:#888">Raw text</td><td style="font-family:monospace;font-size:.8rem">${inc.raw_text}</td></tr>`;
+    html += `<tr><td style="font-weight:600;color:#888">Cleaned text</td><td style="font-family:monospace;font-size:.8rem">${inc.cleaned_text || '<span style="color:#999">--</span>'}</td></tr>`;
+    html += `</tbody></table>`;
+    html += `</div>`;
+  }
+
+  document.getElementById('incidents-detail-container').innerHTML = html;
+}
+
+// ----------------------------------------------------------------
+// Initial load
+// ----------------------------------------------------------------
+loadState();
+</script>
+</body>
+</html>

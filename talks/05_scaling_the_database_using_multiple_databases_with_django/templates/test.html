@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Panel -- Scaling with Multiple Databases</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 960px; margin: 2rem auto; padding: 0 1rem;
+    line-height: 1.5; color: #1a1a1a; background: #f5f5f5;
+}
+h1 { margin-bottom: 0.25rem; }
+.subtitle { color: #666; margin-bottom: 1.5rem; }
+a { color: #2563eb; }
+nav { margin-bottom: 2rem; }
+nav a { margin-right: 1rem; font-weight: 500; }
+
+/* Status bar */
+.status-bar {
+    display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+    margin-bottom: 1.5rem; padding: 0.75rem 1rem;
+    background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;
+    font-size: 0.85rem;
+}
+.status-bar .db-count {
+    padding: 0.2rem 0.6rem; border-radius: 6px;
+    font-weight: 600; font-size: 0.8rem;
+}
+.db-primary { background: #dbeafe; color: #1e40af; }
+.db-replica { background: #f3e8ff; color: #6b21a8; }
+.sync-ok { background: #d1fae5; color: #065f46; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.8rem; }
+.sync-stale { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.8rem; }
+.router-badge {
+    margin-left: auto;
+    padding: 0.2rem 0.6rem; border-radius: 6px;
+    font-weight: 600; font-size: 0.8rem;
+}
+.router-smart { background: #d1fae5; color: #065f46; }
+.router-naive { background: #fee2e2; color: #991b1b; }
+
+/* Cards */
+.card {
+    background: #fff; border-radius: 10px; padding: 1.5rem;
+    margin-bottom: 1.5rem; border: 2px solid #e5e7eb;
+}
+.card h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+.card-lag { border-left: 5px solid #f59e0b; }
+.card-atomic { border-left: 5px solid #10b981; }
+.card-getorcreate { border-left: 5px solid #8b5cf6; }
+.card-gfk { border-left: 5px solid #6366f1; }
+.label {
+    display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+.label-lag { background: #fef3c7; color: #92400e; }
+.label-atomic { background: #d1fae5; color: #065f46; }
+.label-getorcreate { background: #ede9fe; color: #5b21b6; }
+.label-gfk { background: #e0e7ff; color: #3730a3; }
+
+/* Explanation */
+.explain { color: #444; margin-bottom: 1rem; line-height: 1.6; }
+.explain strong { color: #1a1a1a; }
+
+/* Flow diagram */
+.flow {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0.5rem; margin: 1rem 0; padding: 0.75rem;
+    background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.flow .step {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.7rem; border-radius: 6px;
+    font-size: 0.8rem; font-weight: 500; white-space: nowrap;
+}
+.flow .arrow { color: #94a3b8; font-size: 1.1rem; }
+.step-write { background: #fee2e2; color: #991b1b; }
+.step-read { background: #dbeafe; color: #1e40af; }
+.step-primary { background: #fef3c7; color: #92400e; }
+.step-replica { background: #f3e8ff; color: #6b21a8; }
+.step-ok { background: #d1fae5; color: #065f46; }
+.step-bad { background: #fee2e2; color: #991b1b; }
+.step-sync { background: #e0e7ff; color: #3730a3; }
+
+/* Code blocks */
+pre {
+    background: #1e293b; color: #e2e8f0; padding: 1rem;
+    border-radius: 8px; overflow-x: auto; font-size: 0.82rem;
+    line-height: 1.5; margin: 0.75rem 0;
+}
+pre code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; }
+.hl { background: rgba(250, 204, 21, 0.2); display: inline; }
+.comment { color: #64748b; }
+
+/* Demo area */
+.demo-area {
+    margin: 1rem 0; padding: 1rem;
+    background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.demo-area h3 { font-size: 0.95rem; color: #475569; margin-bottom: 0.75rem; }
+
+/* Result display */
+.result-box {
+    margin-top: 0.75rem; padding: 0.75rem;
+    border-radius: 6px; font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap;
+}
+.result-ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.result-bug { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.result-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.result-waiting { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-style: italic; }
+
+/* Buttons */
+button, .btn {
+    cursor: pointer; padding: 0.4rem 1rem;
+    border: 1px solid #d1d5db; background: #fff; border-radius: 6px;
+    font-size: 0.85rem; font-family: inherit;
+}
+button:hover, .btn:hover { background: #f3f4f6; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-warning { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+.btn-warning:hover { background: #d97706; }
+.btn-sm { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+.toolbar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<h1>Scaling with Multiple Databases</h1>
+<p class="subtitle">DjangoCon Europe 2026 &mdash; Jake Howard. Interactive test panel for primary/replica routing.</p>
+<nav>
+    <a href="/">Home</a>
+    <a href="/test/">Test panel</a>
+</nav>
+
+<div class="status-bar" id="status-bar">
+    <span>Primary: <span class="db-count db-primary" id="st-primary">--</span></span>
+    <span>Replica: <span class="db-count db-replica" id="st-replica">--</span></span>
+    <span id="st-sync" class="sync-ok">--</span>
+    <span id="st-router" class="router-badge router-smart">--</span>
+</div>
+
+<div class="toolbar">
+    <button class="btn" onclick="refreshState()">Refresh</button>
+    <button class="btn" onclick="seedData()">Seed data</button>
+    <button class="btn" onclick="syncReplica()">Sync replica</button>
+    <button class="btn" onclick="resetData()">Reset all</button>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 0: Replication Lag -->
+<!-- ================================================================== -->
+
+<div class="card card-lag">
+    <span class="label label-lag">Challenge #0</span>
+    <h2>Replication Lag</h2>
+
+    <p class="explain">
+        Before we even talk about routers: <strong>replicas are always behind the primary</strong>.
+        When you write a row to the primary, the replica doesn't see it until replication catches up.
+        In production (AWS RDS, etc.) lag is usually single-digit milliseconds. Here we simulate it
+        with two SQLite files and a manual <code>sync_replica</code> command.
+    </p>
+
+    <div class="flow">
+        <span class="step step-write">INSERT author</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-primary">Primary: 4 rows</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-replica">Replica: 3 rows (stale!)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-sync">sync_replica</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-ok">Replica: 4 rows</span>
+    </div>
+
+<pre><code><span class="comment"># Two database aliases in settings.py</span>
+DATABASES = {
+    "default": {           <span class="comment"># primary -- handles writes</span>
+        "ENGINE": "...",
+        "NAME": "primary.sqlite3",
+    },
+    "replica": {           <span class="comment"># replica -- handles reads (when in sync)</span>
+        "ENGINE": "...",
+        "NAME": "replica.sqlite3",
+        <span class="hl">"TEST": {"MIRROR": "default"},</span>  <span class="comment"># tests share one DB</span>
+    },
+}
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it: write to primary, read from replica</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">
+            Click "Run" to insert a row on the primary and immediately read from the replica.
+            The replica won't see it until we sync.
+        </p>
+        <button class="btn btn-primary" onclick="runDemoLag(this)">Run demo</button>
+        <div id="result-lag" class="result-box result-waiting">Click "Run demo" to see the result.</div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 1: Transaction Read-Your-Own-Writes -->
+<!-- ================================================================== -->
+
+<div class="card card-atomic">
+    <span class="label label-atomic">Challenge #1</span>
+    <h2>Reads Inside Transactions</h2>
+
+    <p class="explain">
+        Inside <code>transaction.atomic()</code>, writes go to the primary (via <code>db_for_write</code>).
+        But reads go to the replica (via <code>db_for_read</code>). The replica can't see uncommitted
+        data from the primary's in-progress transaction. So a <strong>count after a create returns 0</strong>
+        with a naive router. The fix: check <code>transaction.get_autocommit("default")</code> in the router.
+        When it returns <code>False</code>, we're inside a transaction &mdash; route reads to the primary too.
+    </p>
+
+    <div class="flow">
+        <span class="step step-write">atomic()</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-write">CREATE author</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-read">COUNT(*)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-bad">Naive: replica says 0</span>
+    </div>
+    <div class="flow">
+        <span class="step step-write">atomic()</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-write">CREATE author</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-read">COUNT(*)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-ok">Smart: primary says 1</span>
+    </div>
+
+<pre><code><span class="comment"># The fix in db_for_read:</span>
+def db_for_read(self, model, **hints):
+    <span class="comment"># Inside a transaction? Read from primary (see own writes)</span>
+    <span class="hl">if not transaction.get_autocommit(using="default"):
+        return "default"</span>
+    return "replica"
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it: create + count inside atomic()</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">
+            Creates an author inside <code>atomic()</code>, then counts. Shows which connection
+            handled the read and whether the count was correct.
+        </p>
+        <button class="btn btn-primary" onclick="runDemoAtomic(this)">Run demo</button>
+        <div id="result-atomic" class="result-box result-waiting">Click "Run demo" to see the result.</div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 2: get_or_create Performance -->
+<!-- ================================================================== -->
+
+<div class="card card-getorcreate">
+    <span class="label label-getorcreate">Challenge #2</span>
+    <h2>get_or_create Always Hits Primary</h2>
+
+    <p class="explain">
+        Django's <code>get_or_create</code> always routes through the <strong>write connection</strong>,
+        even when the row already exists. It does this to guarantee read-your-writes consistency.
+        That means every call hits the primary, even on the happy path where the row is already there.
+        The fix: a <code>replica_aware_get_or_create</code> that tries <code>.get()</code> first
+        (routed to replica), then falls back to the real <code>get_or_create</code> only on miss.
+    </p>
+
+    <div class="flow">
+        <span class="step step-read">get_or_create("Jake")</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-bad">Always PRIMARY (even if Jake exists)</span>
+    </div>
+    <div class="flow">
+        <span class="step step-read">replica_aware: .get("Jake")</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-ok">REPLICA (happy path)</span>
+        <span class="arrow">|</span>
+        <span class="step step-write">DoesNotExist? get_or_create</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-primary">PRIMARY (fallback)</span>
+    </div>
+
+<pre><code><span class="comment"># helpers.py</span>
+def replica_aware_get_or_create(manager, defaults=None, **kwargs):
+    <span class="hl">try:
+        return manager.get(**kwargs), False     # replica (via router)</span>
+    except manager.model.DoesNotExist:
+        <span class="hl">return manager.get_or_create(defaults=defaults or {}, **kwargs)</span>  <span class="comment"># primary</span>
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it: compare query routing</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">
+            Compares standard <code>get_or_create</code> with the replica-aware version.
+            Shows which connection handled the queries in each case.
+        </p>
+        <button class="btn btn-primary" onclick="runDemoGetOrCreate(this)">Run demo</button>
+        <div id="result-getorcreate" class="result-box result-waiting">Click "Run demo" to see the result.</div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 3: GenericRelation Write Bug -->
+<!-- ================================================================== -->
+
+<div class="card card-gfk">
+    <span class="label label-gfk">Challenge #3</span>
+    <h2>GenericRelation .update() Routes to Replica</h2>
+
+    <p class="explain">
+        Django ticket <a href="https://code.djangoproject.com/ticket/36389">#36389</a>: calling
+        <code>instance.generic_relation.update(...)</code> is a write, but the ORM routes it through
+        the <strong>read connection</strong>. On a real replica this would fail (read-only).
+        The fix: at startup, walk the model registry to find models with
+        <code>GenericForeignKey</code> or <code>GenericRelation</code>, and force them to
+        <code>default</code> in the router.
+    </p>
+
+    <div class="flow">
+        <span class="step step-write">revision.mains.update(text=...)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-bad">Naive: UPDATE on REPLICA</span>
+    </div>
+    <div class="flow">
+        <span class="step step-write">revision.mains.update(text=...)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-ok">Smart: UPDATE on PRIMARY</span>
+    </div>
+
+<pre><code><span class="comment"># The fix in db_for_read -- detect GFK models at startup:</span>
+def _models_with_generic_fields():
+    out = set()
+    for model in apps.get_models():
+        for field in model._meta.get_fields():
+            <span class="hl">if isinstance(field, (GenericForeignKey, GenericRelation)):
+                out.add(model)</span>
+                break
+    return out
+
+class PrimaryReplicaRouter:
+    @cached_property
+    def _gfk_models(self):
+        return _models_with_generic_fields()
+
+    def db_for_read(self, model, **hints):
+        <span class="hl">if model in self._gfk_models:
+            return "default"</span>   <span class="comment"># force GFK models to primary</span>
+        ...
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it: update via GenericRelation</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">
+            Creates a Revision + MainModel with a GenericForeignKey, then calls
+            <code>.mains.update(text=...)</code>. Shows whether the write leaked to the replica.
+        </p>
+        <button class="btn btn-primary" onclick="runDemoGfk(this)">Run demo</button>
+        <div id="result-gfk" class="result-box result-waiting">Click "Run demo" to see the result.</div>
+    </div>
+</div>
+
+<script>
+// =====================================================================
+// Helpers
+// =====================================================================
+
+function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function postJSON(url) {
+    const res = await fetch(url, { method: 'POST' });
+    return res.json();
+}
+
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    return res.json();
+}
+
+function disableBtn(btn) {
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+}
+
+function enableBtn(btn, label) {
+    btn.disabled = false;
+    btn.textContent = label || 'Run demo';
+}
+
+// =====================================================================
+// Status bar
+// =====================================================================
+
+async function refreshState() {
+    const data = await fetchJSON('/test/api/state/');
+    document.getElementById('st-primary').textContent = data.primary.authors + ' authors, ' + data.primary.books + ' books';
+    document.getElementById('st-replica').textContent = data.replica.authors + ' authors, ' + data.replica.books + ' books';
+
+    const syncEl = document.getElementById('st-sync');
+    if (data.in_sync) {
+        syncEl.className = 'sync-ok';
+        syncEl.textContent = 'In sync';
+    } else {
+        syncEl.className = 'sync-stale';
+        syncEl.textContent = 'Out of sync';
+    }
+
+    const routerEl = document.getElementById('st-router');
+    routerEl.textContent = 'Router: ' + data.router;
+    routerEl.className = 'router-badge ' + (data.router === 'PrimaryReplicaRouter' ? 'router-smart' : 'router-naive');
+}
+
+async function seedData() { await postJSON('/test/api/seed/'); refreshState(); }
+async function syncReplica() { await postJSON('/test/api/sync/'); refreshState(); }
+async function resetData() { await postJSON('/test/api/reset/'); refreshState(); }
+
+// =====================================================================
+// Demo: Replication Lag
+// =====================================================================
+
+async function runDemoLag(btn) {
+    disableBtn(btn);
+    const el = document.getElementById('result-lag');
+    el.className = 'result-box result-info';
+    el.textContent = 'Running...';
+
+    try {
+        const data = await postJSON('/test/api/demo-lag/');
+        const lines = [
+            'Before:      primary=' + data.before.primary + '  replica=' + data.before.replica,
+            'After write: primary=' + data.after_write.primary + '  replica=' + data.after_write.replica +
+                (data.replica_was_stale ? '  <-- STALE' : ''),
+            'After sync:  primary=' + data.after_sync.primary + '  replica=' + data.after_sync.replica,
+            '',
+            data.replica_was_stale
+                ? 'The replica was stale after the write. sync_replica fixed it.'
+                : 'Replica was already in sync (both use the same file in tests).',
+        ];
+        el.className = 'result-box ' + (data.replica_was_stale ? 'result-ok' : 'result-info');
+        el.textContent = lines.join('\n');
+    } catch (e) {
+        el.className = 'result-box result-bug';
+        el.textContent = 'Error: ' + e.message;
+    }
+    enableBtn(btn);
+    refreshState();
+}
+
+// =====================================================================
+// Demo: Atomic Transactions
+// =====================================================================
+
+async function runDemoAtomic(btn) {
+    disableBtn(btn);
+    const el = document.getElementById('result-atomic');
+    el.className = 'result-box result-info';
+    el.textContent = 'Running...';
+
+    try {
+        const data = await postJSON('/test/api/demo-atomic/');
+        const lines = [
+            'Router:    ' + data.router,
+            'Baseline:  ' + data.baseline + ' authors',
+            '',
+            'Inside atomic():',
+            '  Created 1 author',
+            '  COUNT(*) = ' + data.count_inside_atomic + '  (expected ' + data.expected + ')',
+            '  Read from: ' + data.read_from,
+            '',
+            data.correct
+                ? 'CORRECT: The smart router detected the transaction and read from primary.'
+                : 'BUG: The naive router sent the read to the replica, which returned stale data.',
+        ];
+        el.className = 'result-box ' + (data.correct ? 'result-ok' : 'result-bug');
+        el.textContent = lines.join('\n');
+    } catch (e) {
+        el.className = 'result-box result-bug';
+        el.textContent = 'Error: ' + e.message;
+    }
+    enableBtn(btn);
+    refreshState();
+}
+
+// =====================================================================
+// Demo: get_or_create
+// =====================================================================
+
+async function runDemoGetOrCreate(btn) {
+    disableBtn(btn);
+    const el = document.getElementById('result-getorcreate');
+    el.className = 'result-box result-info';
+    el.textContent = 'Running...';
+
+    try {
+        const data = await postJSON('/test/api/demo-get-or-create/');
+        const std = data.standard_get_or_create;
+        const happy = data.replica_aware_happy_path;
+        const unhappy = data.replica_aware_unhappy_path;
+        const lines = [
+            'Standard get_or_create (row exists):',
+            '  created=' + std.created + '  primary_queries=' + std.primary_queries + '  replica_queries=' + std.replica_queries,
+            '  --> ' + std.read_from,
+            '',
+            'replica_aware_get_or_create (row exists):',
+            '  created=' + happy.created + '  primary_queries=' + happy.primary_queries + '  replica_queries=' + happy.replica_queries,
+            '  --> read from ' + happy.read_from,
+            '',
+            'replica_aware_get_or_create (row missing):',
+            '  created=' + unhappy.created + '  primary_queries=' + unhappy.primary_queries + '  replica_queries=' + unhappy.replica_queries,
+            '  --> ' + unhappy.note,
+        ];
+        el.className = 'result-box result-ok';
+        el.textContent = lines.join('\n');
+    } catch (e) {
+        el.className = 'result-box result-bug';
+        el.textContent = 'Error: ' + e.message;
+    }
+    enableBtn(btn);
+    refreshState();
+}
+
+// =====================================================================
+// Demo: GenericRelation bug
+// =====================================================================
+
+async function runDemoGfk(btn) {
+    disableBtn(btn);
+    const el = document.getElementById('result-gfk');
+    el.className = 'result-box result-info';
+    el.textContent = 'Running...';
+
+    try {
+        const data = await postJSON('/test/api/demo-gfk/');
+        const lines = [
+            'Router:               ' + data.router,
+            'Revision loaded from: ' + data.revision_loaded_from,
+            '',
+            'After revision.mains.update(text=...):',
+            '  primary_queries=' + data.primary_queries,
+            '  replica_queries=' + data.replica_queries,
+            '',
+            data.explanation,
+        ];
+        el.className = 'result-box ' + (data.bug_active ? 'result-bug' : 'result-ok');
+        el.textContent = lines.join('\n');
+    } catch (e) {
+        el.className = 'result-box result-bug';
+        el.textContent = 'Error: ' + e.message;
+    }
+    enableBtn(btn);
+    refreshState();
+}
+
+// =====================================================================
+// Init
+// =====================================================================
+
+refreshState();
+</script>
+</body>
+</html>
