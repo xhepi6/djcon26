@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 11 — Admin Rewrite Test Panel</title>
+<style>
+  :root { --bg: #f8f9fa; --fg: #212529; --card: #fff; --border: #dee2e6;
+          --accent: #198754; --accent2: #0d6efd; --muted: #6c757d;
+          --code-bg: #1e1e2e; --code-fg: #cdd6f4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg);
+         max-width: 1100px; margin: 0 auto; padding: 1.5rem; line-height: 1.5; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: var(--muted); margin-bottom: 1.5rem; }
+  .grid { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+          padding: 1rem; }
+  .card h2 { font-size: 1rem; margin-bottom: .75rem; color: var(--accent); }
+  .card h3 { font-size: .85rem; margin-bottom: .5rem; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 4px; font-size: .75rem; }
+  .badge-active { background: #d1e7dd; color: #0a5c36; }
+  .badge-draft { background: #fff3cd; color: #664d03; }
+  .badge-discontinued { background: #f8d7da; color: #842029; }
+  button { padding: .5rem 1rem; border: none; border-radius: 6px; cursor: pointer;
+           font-size: .85rem; font-weight: 500; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #157347; }
+  .btn-secondary { background: var(--accent2); color: #fff; }
+  .btn-secondary:hover { background: #0b5ed7; }
+  .btn-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .admin-links { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .admin-links a { display: inline-flex; align-items: center; gap: .4rem;
+                    padding: .6rem 1.2rem; border-radius: 6px; text-decoration: none;
+                    font-weight: 600; font-size: .9rem; }
+  .link-stock { background: #2c3e50; color: #fff; }
+  .link-stock:hover { background: #1a252f; }
+  .link-deux { background: var(--accent); color: #fff; }
+  .link-deux:hover { background: #157347; }
+  pre.inspect { background: var(--code-bg); color: var(--code-fg); padding: 1rem;
+                border-radius: 8px; overflow-x: auto; font-size: .78rem; line-height: 1.6;
+                max-height: 500px; overflow-y: auto; white-space: pre; }
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .comparison > div { padding: .75rem; }
+  .comparison > div:first-child { border-right: 1px solid var(--border); }
+  .comparison h3 { text-align: center; }
+  .model-list { list-style: none; font-size: .85rem; }
+  .model-list li { padding: .3rem 0; }
+  .model-list li::before { content: ""; display: inline-block; width: 8px; height: 8px;
+                            border-radius: 50%; margin-right: .5rem; }
+  .stock-list li::before { background: #2c3e50; }
+  .deux-list li::before { background: var(--accent); }
+  .status { text-align: center; padding: 1rem; font-size: .85rem; color: var(--muted); }
+  .note { font-size: .8rem; color: var(--muted); margin-top: .5rem; }
+  @media (max-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .comparison { grid-template-columns: 1fr; }
+    .comparison > div:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<h1>Talk 11 — Is It Time for a Django Admin Rewrite?</h1>
+<p class="subtitle">Side-by-side: stock Django admin vs django-admin-deux</p>
+
+<div class="admin-links">
+  <a href="/admin/" target="_blank" class="link-stock">Open Stock Admin</a>
+  <a href="/djadmin/" target="_blank" class="link-deux">Open Admin-Deux</a>
+</div>
+
+<div class="btn-group" style="margin-bottom:1rem">
+  <button class="btn-primary" onclick="seedData()">Seed Data</button>
+  <button class="btn-secondary" onclick="compareAdmins()">Compare Registrations</button>
+  <button class="btn-secondary" onclick="loadState()">Refresh State</button>
+</div>
+
+<!-- Comparison panel (hidden until Compare is clicked) -->
+<div id="comparison-card" class="card" style="display:none; margin-bottom:1rem">
+  <h2>Model Registration Comparison</h2>
+  <div class="comparison">
+    <div>
+      <h3>Stock Admin <code>/admin/</code></h3>
+      <ul id="stock-models" class="model-list stock-list"></ul>
+    </div>
+    <div>
+      <h3>Admin-Deux <code>/djadmin/</code></h3>
+      <ul id="deux-models" class="model-list deux-list"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <!-- Sample Data -->
+  <div class="card">
+    <h2>Sample Data</h2>
+    <h3>Products (<span id="product-count">0</span>)</h3>
+    <table>
+      <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody id="products-body"></tbody>
+    </table>
+    <p class="note" id="superuser-note"></p>
+  </div>
+
+  <!-- Authors & Categories -->
+  <div class="card">
+    <h2>Authors &amp; Categories</h2>
+    <h3>Authors (<span id="author-count">0</span>)</h3>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th></tr></thead>
+      <tbody id="authors-body"></tbody>
+    </table>
+    <h3 style="margin-top:1rem">Categories (<span id="category-count">0</span>)</h3>
+    <table>
+      <thead><tr><th>Name</th><th>Slug</th></tr></thead>
+      <tbody id="categories-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- djadmin_inspect output -->
+<div class="card" style="margin-top:1rem">
+  <h2>View Factory Introspection</h2>
+  <p class="note" style="margin-bottom:.75rem">
+    Output of <code>python manage.py djadmin_inspect</code> — shows how each view is composed from Django generic views + plugin mixins.
+  </p>
+  <pre class="inspect" id="inspect-output">Loading...</pre>
+</div>
+
+<p class="status" id="status">Loading state...</p>
+
+<script>
+const API = {
+  state: '/test/api/state/',
+  check: '/test/api/check/',
+  reset: '/test/api/reset/',
+};
+
+function esc(s) {
+  // Escape HTML to prevent XSS from server data
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.textContent;
+}
+
+function statusBadge(status) {
+  const cls = status === 'active' ? 'badge-active'
+            : status === 'draft' ? 'badge-draft'
+            : 'badge-discontinued';
+  return '<span class="badge ' + cls + '">' + esc(status) + '</span>';
+}
+
+function renderProducts(products) {
+  const tbody = document.getElementById('products-body');
+  tbody.replaceChildren();
+  products.forEach(function(p) {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = p.name;
+    const tdSku = document.createElement('td');
+    const code = document.createElement('code');
+    code.textContent = p.sku;
+    tdSku.appendChild(code);
+    const tdCat = document.createElement('td');
+    tdCat.textContent = p.category;
+    const tdPrice = document.createElement('td');
+    tdPrice.textContent = '$' + p.price;
+    const tdStatus = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'badge badge-' + p.status;
+    badge.textContent = p.status;
+    tdStatus.appendChild(badge);
+    tr.append(tdName, tdSku, tdCat, tdPrice, tdStatus);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderAuthors(authors) {
+  const tbody = document.getElementById('authors-body');
+  tbody.replaceChildren();
+  authors.forEach(function(a) {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = a.first_name + ' ' + a.last_name;
+    const tdEmail = document.createElement('td');
+    tdEmail.textContent = a.email;
+    tr.append(tdName, tdEmail);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCategories(categories) {
+  const tbody = document.getElementById('categories-body');
+  tbody.replaceChildren();
+  categories.forEach(function(c) {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = c.name;
+    const tdSlug = document.createElement('td');
+    const code = document.createElement('code');
+    code.textContent = c.slug;
+    tdSlug.appendChild(code);
+    tr.append(tdName, tdSlug);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderModelList(container, models) {
+  container.replaceChildren();
+  models.forEach(function(m) {
+    const li = document.createElement('li');
+    li.textContent = m;
+    container.appendChild(li);
+  });
+}
+
+async function loadState() {
+  try {
+    const r = await fetch(API.state);
+    const d = await r.json();
+
+    document.getElementById('product-count').textContent = d.products.length;
+    renderProducts(d.products);
+
+    document.getElementById('author-count').textContent = d.authors.length;
+    renderAuthors(d.authors);
+
+    document.getElementById('category-count').textContent = d.categories.length;
+    renderCategories(d.categories);
+
+    document.getElementById('inspect-output').textContent = d.inspect_output || '(no output)';
+
+    document.getElementById('superuser-note').textContent = d.has_superuser
+      ? 'Superuser exists \u2014 log in with admin/admin'
+      : 'No superuser yet \u2014 click Seed Data to create one';
+
+    document.getElementById('status').textContent =
+      'Loaded ' + d.products.length + ' products, ' +
+      d.authors.length + ' authors, ' +
+      d.categories.length + ' categories';
+  } catch (e) {
+    document.getElementById('status').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function compareAdmins() {
+  try {
+    const r = await fetch(API.check, { method: 'POST' });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error); return; }
+
+    renderModelList(document.getElementById('stock-models'), d.stock_admin.models);
+    renderModelList(document.getElementById('deux-models'), d.admin_deux.models);
+    document.getElementById('comparison-card').style.display = 'block';
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function seedData() {
+  document.getElementById('status').textContent = 'Seeding data...';
+  try {
+    const r = await fetch(API.reset, { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      await loadState();
+      document.getElementById('status').textContent = 'Data seeded! Login: admin / admin';
+    }
+  } catch (e) {
+    document.getElementById('status').textContent = 'Error: ' + e.message;
+  }
+}
+
+// Load on page open
+loadState();
+</script>
+</body>
+</html>

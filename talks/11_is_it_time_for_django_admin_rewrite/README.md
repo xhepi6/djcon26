@@ -25,6 +25,47 @@ Django-Admin-Deux takes a different approach:
 - **Plugin-first design** — built on Simon Willison's `djp` (which uses `pluggy` from pytest). Plugins auto-register on `pip install`. Even core CRUD is implemented as a plugin
 - **Django-native** — if you know Django generic views, forms, and querysets, you know how to extend admin-deux. No new framework to learn
 - **Side-by-side migration** — runs on a separate URL (`/djadmin/`) alongside stock admin. Migrate one model at a time
+- **Dark mode** — built-in toggle, plain CSS, no framework dependency
+
+## Side-by-Side Comparison
+
+The experiment in this folder runs both admins on the same models. Here's what the difference looks like.
+
+### Dashboard
+
+| Stock Admin | Admin-Deux |
+|:-----------:|:----------:|
+| ![Stock admin dashboard](screenshots/stock_admin_dashboard.png) | ![Admin-deux dashboard](screenshots/deux_dashboard.png) |
+
+### Product List View
+
+Stock admin gives you a table with sidebar filters (link-based, one at a time):
+
+![Stock admin product list](screenshots/stock_admin_product_list.png)
+
+Admin-deux adds sortable columns, a search + filter sidebar with dropdowns and range inputs, and inline Edit/Delete actions per row — all declared in `djadmin.py` with `Column` objects:
+
+![Admin-deux product list](screenshots/deux_product_list.png)
+
+Filter by category "Books" + sort by price ascending:
+
+![Admin-deux filtered and sorted](screenshots/deux_product_list_filtered.png)
+
+### Form Layout
+
+Stock admin stacks every field vertically with no grouping:
+
+![Stock admin author form](screenshots/stock_admin_author_form.png)
+
+Admin-deux uses a `Layout` object with `Fieldset`, `Row`, and `Field` to group fields, put first/last name side by side, and apply custom labels:
+
+![Admin-deux author form](screenshots/deux_author_form.png)
+
+### Dark Mode
+
+Built-in toggle, no extra config:
+
+![Admin-deux dark mode](screenshots/deux_dark_mode.png)
 
 ## How to Use It
 
@@ -159,6 +200,44 @@ def djadmin_get_action_view_mixins(action):
 
 Plugins auto-register on `pip install` when using `djadmin_apps()`. No manual `INSTALLED_APPS` entries needed.
 
+### Introspecting the view factory
+
+`djadmin_inspect` shows exactly how each view is composed — which Django generic view is the base, which plugin mixins are added, what actions are registered:
+
+```
+$ python manage.py djadmin_inspect
+
+ModelAdmin: catalog.djadmin.ProductAdmin (catalog.Product)
+================================================================================
+
+ACTIONS:
+  General Actions:
+    - ListAction → ProductListView
+    - AddAction → ProductAddView
+  Bulk Actions:
+    - DeleteBulkAction → ProductDeleteBulkView
+  Record Actions:
+    - ViewAction → ProductView
+    - EditAction → ProductEditView
+    - DeleteAction → ProductDeleteView
+
+VIEW COMPOSITION - ListAction:
+  View Class: ProductListView
+  Base Class: ListView (Django: django.views.generic.list)
+  Mixins:
+    - PermissionMixin (djadmin-permissions)
+    - DjAdminFiltersMixin (djadmin_filters)
+    - DjAdminViewMixin (djadmin core)
+    - SearchMixin (djadmin core)
+
+REQUESTED FEATURES:
+  - filter (provided by: djadmin-filters)
+  - ordering (provided by: djadmin-filters)
+  - search (provided by: djadmin-core, djadmin-filters)
+```
+
+The `ProductListView` is built from Django's own `ListView` plus plugin mixins. No custom view framework — just standard Django.
+
 ## Available Plugins
 
 | Plugin | Package | What it does |
@@ -179,14 +258,13 @@ Plugins auto-register on `pip install` when using `djadmin_apps()`. No manual `I
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project with both stock admin and admin-deux side by side. It demonstrates model registration, enhanced columns, form layouts, and plugins.
+A runnable Django project with both stock admin and admin-deux side by side.
 
 ```bash
-cd experiment
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
-python manage.py createsuperuser
+python manage.py createsuperuser   # or use Seed Data button on /test/
 python manage.py runserver
 ```
 
@@ -194,8 +272,10 @@ What you can try:
 
 | URL | What it shows |
 |-----|--------------|
+| `/` | Home page with available routes and commands |
 | `/admin/` | Stock Django admin — same models, for comparison |
 | `/djadmin/` | Admin-deux — enhanced columns, filters, layouts |
+| `/test/` | Interactive test panel — data overview, view introspection, registration comparison |
 | `python manage.py djadmin_inspect` | Introspect registered ModelAdmins and their actions |
 
 Key files:
@@ -203,6 +283,7 @@ Key files:
 - `catalog/admin.py` — stock admin registration for the same models (comparison)
 - `catalog/models.py` — Product, Category, Author models
 - `config/urls.py` — both admins mounted side by side
+- `test_views.py` — API endpoints for the test panel
 
 ## Key Takeaways
 
