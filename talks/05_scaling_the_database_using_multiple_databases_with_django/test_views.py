@@ -9,9 +9,6 @@ JSON showing what happened -- which connection handled which queries,
 whether the bug or the fix was active, etc.
 """
 
-import json
-import os
-
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
