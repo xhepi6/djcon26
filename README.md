@@ -54,22 +54,3 @@ Each talk has its own dependencies. If you're exploring multiple talks, **create
 Some talks require **PostgreSQL** (indexes, partitioning). Those include a `docker-compose.yml` that starts Postgres on a non-default port so it doesn't collide with other talks or a local install.
 
 Some talks include a `/test/` page with an interactive test panel that explains each endpoint and lets you run them from the browser.
-
-## How to contribute
-
-### Building an experiment
-
-- Keep it minimal -- only what's needed to demo the topic
-- SQLite by default. PostgreSQL only when the topic requires it
-- Pin minimum versions in `requirements.txt`
-- Add comments pointing to what each piece demonstrates
-- Include `seed_data` management command for demo data
-- Add a `/test/` page if the talk benefits from interactive testing
-- It should just work with the 4-command sequence above
-
-### Writing style
-
-- Simple words, short sentences
-- Lead with "what it does"
-- Code over prose
-- No fluff
