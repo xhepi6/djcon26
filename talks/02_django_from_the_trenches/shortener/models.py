@@ -5,7 +5,6 @@ Each index is labeled so you can enable/disable them to compare.
 Run `python manage.py debug_indexes` to see sizes and query plans.
 """
 
-from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.indexes import BrinIndex, HashIndex
 from django.db import models
 from django.db.models import F, Func, Q

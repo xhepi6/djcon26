@@ -270,29 +270,38 @@ class ShortUrl(models.Model):
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project with all index types. **Requires PostgreSQL.**
+This folder is a runnable Django project with all index types. **Requires PostgreSQL.**
 
 ```bash
-cd experiment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 docker compose up -d                # starts PostgreSQL on port 55434
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data          # 10k rows (or: seed_data 100000)
+python manage.py runserver
+```
 
-# See all index sizes and query plans
+Then open:
+
+- **`/test/`** — interactive test panel showing EXPLAIN ANALYZE results, index sizes, Django model code, and SQL for each index type
+- **`/r/<key>/`** — redirect (covering index)
+- **`/by-domain/<domain>/`** — domain search (function-based index)
+- **`/unused/`** — unused URLs (partial index)
+- **`/by-url/?url=...`** — reverse lookup (hash index)
+- **`/by-date/?days=N`** — date range (BRIN index)
+
+To see all index sizes and query plans without the server:
+
+```bash
 python manage.py debug_indexes
 ```
 
-| Command | What it shows |
-|---------|---------------|
-| `python manage.py debug_indexes` | Index sizes + EXPLAIN ANALYZE for every query pattern |
-| `python manage.py shell` | Import from `shortener.queries` and experiment |
-| `python manage.py runserver` | Hit `/r/<key>/`, `/by-domain/example.com/`, `/unused/` |
-
-Key files to explore:
+Key files:
 - `shortener/models.py` — all 5 index types in one model
 - `shortener/queries.py` — one function per index pattern, with `explain()` helper
-- `shortener/management/commands/debug_indexes.py` — compare all indexes at once
+- `shortener/views.py` — app endpoints (one per index type)
+- `shortener/test_views.py` — test panel backend (EXPLAIN ANALYZE)
 
 **Experiment ideas:**
 - Comment out indexes one by one, re-migrate, run `debug_indexes` to see the difference

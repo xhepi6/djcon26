@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Talk 02 - Advanced Indexing</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; line-height: 1.6; }
+        h1 { color: #fff; margin-bottom: 0.3rem; }
+        .subtitle { color: #8888aa; margin-bottom: 2rem; font-size: 0.95rem; }
+        .content { max-width: 920px; }
+
+        /* Toolbox */
+        .toolbox { background: #16213e; border-radius: 10px; padding: 1.5rem; border: 1px solid #333; margin-bottom: 2rem; }
+        .toolbox h2 { color: #e94560; font-size: 1.1rem; margin-bottom: 0.75rem; }
+        .toolbox p { color: #aaa; font-size: 0.9rem; margin-bottom: 0.75rem; }
+        .tool-row { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.6rem; }
+        .tool-row code.cmd { background: #0f0f23; padding: 0.3rem 0.6rem; border-radius: 4px; color: #7aa2d6; font-size: 0.85rem; white-space: nowrap; min-width: 280px; }
+        .tool-row .desc { color: #aaa; font-size: 0.85rem; padding-top: 0.25rem; }
+        .tip { margin-top: 0.75rem; color: #7aa2d6; font-size: 0.85rem; border-left: 3px solid #0f3460; padding-left: 0.75rem; }
+
+        /* Cards */
+        .cards { display: flex; flex-direction: column; gap: 1.5rem; }
+        .card { background: #16213e; border-radius: 10px; padding: 1.5rem; border: 1px solid #333; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .card h2 { color: #e94560; font-size: 1.05rem; }
+        .badge { padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+        .badge.pass { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+        .badge.fail { background: rgba(233, 69, 96, 0.15); color: #e94560; border: 1px solid rgba(233, 69, 96, 0.3); }
+
+        .usecase { color: #aaa; font-size: 0.9rem; margin-bottom: 1rem; }
+        .usecase strong { color: #ccc; }
+        .usecase code { background: #0f0f23; padding: 0.1rem 0.35rem; border-radius: 3px; color: #7aa2d6; font-size: 0.85rem; }
+
+        /* Code blocks */
+        pre.model { background: #0f0f23; padding: 1rem 1.2rem; border-radius: 6px; font-size: 0.82rem; color: #ccc; overflow-x: auto; margin-bottom: 1rem; line-height: 1.55; }
+        .kw { color: #e94560; }
+        .str { color: #4ade80; }
+        .cm { color: #555; }
+        .cls { color: #fbbf24; }
+        .fn { color: #c084fc; }
+        .hl { background: rgba(233, 69, 96, 0.12); display: inline; }
+
+        /* Stats */
+        .stats { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .stat { display: flex; flex-direction: column; }
+        .stat .label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat .val { font-size: 0.95rem; color: #fff; font-weight: 600; }
+        .stat .val.green { color: #4ade80; }
+        .stat .val.red { color: #e94560; }
+        .stat .val.blue { color: #38bdf8; }
+
+        /* SQL */
+        .sql-label { font-size: 0.72rem; color: #444; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        pre.sql { background: #0f0f23; padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.8rem; color: #888; overflow-x: auto; line-height: 1.5; max-width: 100%; }
+
+        /* Stacked comparison */
+        .compare-block { margin-bottom: 1rem; }
+        .compare-label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .compare-label.bad { color: #e94560; }
+        .compare-label.good { color: #4ade80; }
+
+        /* Size bars */
+        .size-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .size-row .name { width: 140px; font-size: 0.85rem; color: #aaa; }
+        .size-row .bar { height: 22px; border-radius: 3px; min-width: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.75rem; color: #fff; font-weight: 600; }
+
+        .loading { color: #666; font-style: italic; font-size: 0.9rem; text-align: center; padding: 2rem; }
+        #error-msg { color: #e94560; text-align: center; padding: 1rem; display: none; }
+    </style>
+</head>
+<body>
+<div class="content">
+    <h1>Advanced Indexing in Django & PostgreSQL</h1>
+    <p class="subtitle">Talk 02 -- Haki Benita. A URL shortener with 10,000 rows, 5 index types, real EXPLAIN ANALYZE results.</p>
+
+    <!-- Debugging Toolbox -->
+    <div class="toolbox">
+        <h2>Step 0: Your Debugging Toolbox</h2>
+        <p>Before optimizing, you need to <strong>see</strong> what PostgreSQL is doing. Three commands:</p>
+        <div class="tool-row">
+            <code class="cmd">print(qs.query)</code>
+            <span class="desc">See the raw SQL that Django generates</span>
+        </div>
+        <div class="tool-row">
+            <code class="cmd">print(qs.explain())</code>
+            <span class="desc">See the execution plan (what PostgreSQL <em>plans</em> to do, without running it)</span>
+        </div>
+        <div class="tool-row">
+            <code class="cmd">print(qs.explain(analyze=True))</code>
+            <span class="desc">Run it and get <strong>real timing</strong> and actual row counts</span>
+        </div>
+        <p class="tip">The workflow: measure baseline, add index, run <code style="background:#0f0f23;padding:0.1rem 0.3rem;border-radius:3px;">explain(analyze=True)</code>, compare. Every card below shows real results from this workflow.</p>
+    </div>
+
+    <div id="loading" class="loading">Loading query plans from the database...</div>
+    <div id="error-msg"></div>
+
+    <div class="cards" id="cards" style="display:none;">
+
+        <!-- Index Sizes -->
+        <div class="card">
+            <h2 style="margin-bottom:0.5rem;">Index Sizes at a Glance</h2>
+            <p class="usecase">Same table, same 10,000 rows. The right index type can be <strong>100x smaller</strong>. More indexes = slower writes + more disk. Pick wisely.</p>
+            <div id="sizes"></div>
+        </div>
+
+        <!-- 1. Covering Index -->
+        <div class="card">
+            <div class="card-header">
+                <h2>1. Covering Index</h2>
+                <span class="badge" id="covering-badge">...</span>
+            </div>
+            <p class="usecase">
+                <strong>Use case:</strong> Someone visits <code>/r/abc123/</code> and we need to redirect them to the full URL.
+                We look up the key and only need the URL back. Normally PostgreSQL finds the key in the index,
+                then <strong>goes to the table</strong> to fetch the URL. With <code>include=["url"]</code>,
+                the URL is stored <strong>inside the index itself</strong> -- it never touches the table. Zero heap fetches.
+            </p>
+<pre class="model"><span class="kw">from</span> django.db <span class="kw">import</span> models
+
+<span class="kw">class</span> <span class="cls">ShortUrl</span>(models.Model):
+    key        = models.CharField(max_length=20)
+    url        = models.URLField(max_length=2048)
+    hits       = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        constraints = [
+<span class="hl">            models.<span class="fn">UniqueConstraint</span>(
+                fields=[<span class="str">"key"</span>],
+                include=[<span class="str">"url"</span>],  <span class="cm"># stored in index leaf, not just indexed</span>
+                name=<span class="str">"shorturl_key_uk"</span>,
+            ),</span>
+        ]</pre>
+            <div class="stats" id="covering-stats"></div>
+            <div class="sql-label">Generated SQL</div>
+            <pre class="sql" id="covering-sql"></pre>
+        </div>
+
+        <!-- 2. Function-Based Index -->
+        <div class="card">
+            <div class="card-header">
+                <h2>2. Function-Based Index</h2>
+                <span class="badge" id="fbi-badge">...</span>
+            </div>
+            <p class="usecase">
+                <strong>Use case:</strong> Find all short URLs pointing to <code>github.com</code>.
+                The domain is buried inside the <code>url</code> field -- we need a regex to extract it.
+                Without this index, PostgreSQL runs that regex on <strong>every row, every query</strong>.
+                With it, the regex result is computed <strong>once on insert</strong> and stored in the index.
+            </p>
+<pre class="model"><span class="kw">from</span> django.db <span class="kw">import</span> models
+<span class="kw">from</span> django.db.models <span class="kw">import</span> F, Func
+
+<span class="kw">class</span> <span class="cls">ShortUrl</span>(models.Model):
+    key        = models.CharField(max_length=20)
+    url        = models.URLField(max_length=2048)
+    hits       = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        indexes = [
+<span class="hl">            models.<span class="fn">Index</span>(
+                <span class="fn">Func</span>(
+                    <span class="fn">F</span>(<span class="str">"url"</span>),
+                    function=<span class="str">"SUBSTRING"</span>,
+                    template=<span class="str">"%(function)s(%(expressions)s from '.*://([^/]*)')"</span>,
+                ),
+                name=<span class="str">"shorturl_domain_fix"</span>,
+            ),</span>
+        ]</pre>
+            <div class="stats" id="fbi-stats"></div>
+            <div class="sql-label">Generated SQL</div>
+            <pre class="sql" id="fbi-sql"></pre>
+        </div>
+
+        <!-- 3. Partial Index -->
+        <div class="card">
+            <div class="card-header">
+                <h2>3. Partial Index</h2>
+                <span class="badge" id="partial-badge">...</span>
+            </div>
+            <p class="usecase">
+                <strong>Use case:</strong> Find short URLs that have <strong>never been clicked</strong> (<code>hits=0</code>)
+                so we can clean them up or send reminders. About 30% of our 10,000 URLs are unused.
+                A full index would cover all 10,000 rows. This one only indexes the ~3,000 that match <code>hits=0</code>.
+                <strong>Same speed, fraction of the disk space.</strong>
+                Best candidates: nullable FKs, boolean flags, status fields.
+            </p>
+<pre class="model"><span class="kw">from</span> django.db <span class="kw">import</span> models
+<span class="kw">from</span> django.db.models <span class="kw">import</span> Q
+
+<span class="kw">class</span> <span class="cls">ShortUrl</span>(models.Model):
+    key        = models.CharField(max_length=20)
+    url        = models.URLField(max_length=2048)
+    hits       = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        indexes = [
+<span class="hl">            models.<span class="fn">Index</span>(
+                fields=[<span class="str">"id"</span>],
+                condition=<span class="fn">Q</span>(hits=0),  <span class="cm"># only rows where hits=0</span>
+                name=<span class="str">"shorturl_unused_pix"</span>,
+            ),</span>
+        ]</pre>
+            <div class="stats" id="partial-stats"></div>
+            <div class="sql-label">Generated SQL</div>
+            <pre class="sql" id="partial-sql"></pre>
+        </div>
+
+        <!-- 4. Hash Index -->
+        <div class="card">
+            <div class="card-header">
+                <h2>4. Hash Index</h2>
+                <span class="badge" id="hash-badge">...</span>
+            </div>
+            <p class="usecase">
+                <strong>Use case:</strong> Reverse lookup -- someone pastes a long URL like
+                <code>https://docs.djangoproject.com/en/5.1/topics/...</code> and we check if it's already shortened.
+                B-Tree stores the <strong>full URL text</strong> in the index -- long URLs = big index.
+                Hash stores a <strong>fixed-size hash</strong> regardless of URL length.
+                Only works for exact <code>=</code> lookups. No LIKE, no range queries, no ORDER BY.
+            </p>
+<pre class="model"><span class="kw">from</span> django.db <span class="kw">import</span> models
+<span class="kw">from</span> django.contrib.postgres.indexes <span class="kw">import</span> <span class="cls">HashIndex</span>
+
+<span class="kw">class</span> <span class="cls">ShortUrl</span>(models.Model):
+    key        = models.CharField(max_length=20)
+    url        = models.URLField(max_length=2048)
+    hits       = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        indexes = [
+<span class="hl">            <span class="fn">HashIndex</span>(
+                fields=[<span class="str">"url"</span>],
+                name=<span class="str">"shorturl_url_hix"</span>,
+            ),</span>
+        ]</pre>
+            <div class="stats" id="hash-stats"></div>
+            <div class="sql-label">Generated SQL</div>
+            <pre class="sql" id="hash-sql"></pre>
+        </div>
+
+        <!-- 5. BRIN Index -->
+        <div class="card">
+            <div class="card-header">
+                <h2>5. BRIN Index</h2>
+                <span class="badge" id="brin-badge">...</span>
+            </div>
+            <p class="usecase">
+                <strong>Use case:</strong> Find all short URLs created in the <strong>last 30 days</strong> for a monthly report.
+                B-Tree creates one entry per row (big). BRIN stores just the <strong>min/max per block of pages</strong> (tiny -- 24 KB).
+                It works here because rows are inserted in time order, so physical disk order matches <code>created_at</code> order.
+                If your data were randomly ordered, BRIN would be useless.
+            </p>
+<pre class="model"><span class="kw">from</span> django.db <span class="kw">import</span> models
+<span class="kw">from</span> django.contrib.postgres.indexes <span class="kw">import</span> <span class="cls">BrinIndex</span>
+
+<span class="kw">class</span> <span class="cls">ShortUrl</span>(models.Model):
+    key        = models.CharField(max_length=20)
+    url        = models.URLField(max_length=2048)
+    hits       = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        indexes = [
+<span class="hl">            <span class="fn">BrinIndex</span>(
+                fields=(<span class="str">"created_at"</span>,),
+                pages_per_range=4,  <span class="cm"># lower = more precise, bigger index</span>
+                name=<span class="str">"shorturl_created_bix"</span>,
+            ),</span>
+        ]</pre>
+            <div class="stats" id="brin-stats"></div>
+            <div class="sql-label">Generated SQL</div>
+            <pre class="sql" id="brin-sql"></pre>
+        </div>
+
+        <!-- 6. alias vs annotate -->
+        <div class="card">
+            <h2 style="margin-bottom:0.75rem;">6. alias() vs annotate()</h2>
+            <p class="usecase">
+                <strong>Use case:</strong> Same domain search as #2, but look at the SQL difference.
+                <code>annotate()</code> computes SUBSTRING and puts it in <strong>both SELECT and WHERE</strong> -- it does the work twice.
+                <code>alias()</code> only puts it in <strong>WHERE</strong>. Use alias when you're filtering but don't need the value in the results.
+            </p>
+            <div class="compare-block">
+                <p class="compare-label bad">annotate() -- SUBSTRING in SELECT + WHERE</p>
+                <pre class="sql" id="annotate-sql"></pre>
+            </div>
+            <div class="compare-block">
+                <p class="compare-label good">alias() -- SUBSTRING only in WHERE</p>
+                <pre class="sql" id="alias-sql"></pre>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const BAR_COLORS = {
+        'bix': '#4ade80', 'pix': '#38bdf8', 'fix': '#c084fc',
+        'hix': '#fbbf24', 'pkey': '#888', 'uk': '#e94560',
+    };
+
+    function barColor(name) {
+        for (const [s, c] of Object.entries(BAR_COLORS))
+            if (name.includes(s)) return c;
+        return '#e94560';
+    }
+
+    function formatSql(sql) {
+        // Add newlines before major clauses
+        let s = sql
+            .replace(/\b(SELECT)\b/gi, '\n$1')
+            .replace(/\b(FROM)\b/gi, '\n  $1')
+            .replace(/\b(WHERE)\b/gi, '\n  $1')
+            .replace(/\b(AND)\b/gi, '\n    $1')
+            .replace(/\b(ORDER BY|GROUP BY|LIMIT)\b/gi, '\n  $1')
+            .trim();
+        // Highlight
+        return s
+            .replace(/\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|GROUP BY|INNER JOIN|LEFT JOIN|LIMIT|AS|ON|IN|NOT|IS|NULL|BETWEEN)\b/gi,
+                m => `<span class="kw">${m.toUpperCase()}</span>`)
+            .replace(/\b(SUBSTRING|COUNT|MAX|MIN|NOW)\b/gi,
+                m => `<span class="fn">${m}</span>`)
+            .replace(/'([^']*)'/g, `<span class="str">'$1'</span>`);
+    }
+
+    function parseSizeKB(s) {
+        const n = parseFloat(s);
+        if (s.includes('MB')) return n * 1024;
+        if (s.includes('GB')) return n * 1024 * 1024;
+        return n;
+    }
+
+    function setBadge(id, data) {
+        const el = document.getElementById(id);
+        const used = data.scan_type.includes('Index');
+        el.className = 'badge ' + (used ? 'pass' : 'fail');
+        el.textContent = used ? 'INDEX USED' : 'SEQ SCAN';
+    }
+
+    function setStats(id, data, indexSize) {
+        let html = '';
+        const add = (label, value, cls) => {
+            html += `<div class="stat"><span class="label">${label}</span><span class="val ${cls||''}">${value}</span></div>`;
+        };
+        add('Scan type', data.scan_type, 'blue');
+        if (data.index_name) add('Index', data.index_name.replace('shortener_shorturl_', ''));
+        if (data.exec_time) add('Exec time', data.exec_time, 'green');
+        if (data.heap_fetches !== '') {
+            const zero = data.heap_fetches === '0';
+            add('Heap fetches', zero ? '0 (table never read)' : data.heap_fetches, zero ? 'green' : 'red');
+        }
+        if (indexSize) add('Index size', indexSize);
+        document.getElementById(id).innerHTML = html;
+    }
+
+    async function loadAll() {
+        try {
+            const resp = await fetch('/explain/');
+            const data = await resp.json();
+
+            // Size bars
+            let maxKB = 0;
+            const entries = data.index_sizes.map(idx => {
+                const kb = parseSizeKB(idx.size);
+                if (kb > maxKB) maxKB = kb;
+                return { name: idx.name, size: idx.size, kb };
+            });
+            let sizesHtml = '';
+            for (const e of entries) {
+                const pct = Math.max((e.kb / maxKB) * 100, 3);
+                const color = barColor(e.name);
+                const short = e.name.replace('shortener_shorturl_', '');
+                sizesHtml += `<div class="size-row">
+                    <span class="name">${short}</span>
+                    <div class="bar" style="width:${pct}%;background:${color};">${e.size}</div>
+                </div>`;
+            }
+            document.getElementById('sizes').innerHTML = sizesHtml;
+
+            const sizeMap = {};
+            for (const idx of data.index_sizes) sizeMap[idx.name] = idx.size;
+
+            const cards = [
+                { key: 'covering', idx: 'shortener_shorturl_key_uk' },
+                { key: 'fbi', idx: 'shortener_shorturl_domain_fix' },
+                { key: 'partial', idx: 'shortener_shorturl_unused_pix' },
+                { key: 'hash', idx: 'shortener_shorturl_url_hix' },
+                { key: 'brin', idx: 'shortener_shorturl_created_bix' },
+            ];
+            for (const c of cards) {
+                setBadge(`${c.key}-badge`, data[c.key]);
+                setStats(`${c.key}-stats`, data[c.key], sizeMap[c.idx] || '');
+                document.getElementById(`${c.key}-sql`).innerHTML = formatSql(data[c.key].sql);
+            }
+
+            document.getElementById('annotate-sql').innerHTML = formatSql(data.alias_vs_annotate.annotate_sql);
+            document.getElementById('alias-sql').innerHTML = formatSql(data.alias_vs_annotate.alias_sql);
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('cards').style.display = 'flex';
+        } catch (err) {
+            document.getElementById('loading').style.display = 'none';
+            const el = document.getElementById('error-msg');
+            el.style.display = 'block';
+            el.textContent = 'Failed to load: ' + err.message;
+        }
+    }
+
+    loadAll();
+</script>
+</body>
+</html>

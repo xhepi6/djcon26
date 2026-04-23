@@ -42,6 +42,7 @@ Pick any talk and:
 cd talks/XX_talk_name
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
+docker compose up -d       # only if the talk has a docker-compose.yml
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
@@ -49,6 +50,8 @@ python manage.py runserver
 ```
 
 Each talk has its own dependencies. If you're exploring multiple talks, **create a separate venv per talk** so packages don't clash.
+
+Some talks require **PostgreSQL** (indexes, partitioning). Those include a `docker-compose.yml` that starts Postgres on a non-default port so it doesn't collide with other talks or a local install.
 
 Some talks include a `/test/` page with an interactive test panel that explains each endpoint and lets you run them from the browser.
 
