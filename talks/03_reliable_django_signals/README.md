@@ -37,7 +37,7 @@ This gives you: decoupling + at-least-once delivery + fault tolerance.
 
 ```bash
 pip install "Django>=6"
-pip install django-tasks
+pip install django-tasks django-tasks-db
 ```
 
 ### 1. Configure the tasks backend
@@ -47,12 +47,12 @@ pip install django-tasks
 INSTALLED_APPS = [
     # ...
     'django_tasks',
-    'django_tasks.backends.database',
+    'django_tasks_db',
 ]
 
 TASKS = {
     "default": {
-        "BACKEND": "django_tasks.backends.database.DatabaseBackend",
+        "BACKEND": "django_tasks_db.DatabaseBackend",
         "ENQUEUE_ON_COMMIT": False,  # we enqueue inside the transaction intentionally
     }
 }
@@ -174,36 +174,43 @@ class OrderTestCase(TestCase):
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project demonstrating all three approaches: naive signals, polling, and reliable signals.
+This folder is a runnable Django project demonstrating reliable signals via the transactional outbox pattern.
 
 ```bash
-cd experiment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
 python manage.py runserver
 ```
 
-In a second terminal, start the task worker:
+Then open:
+
+- **`/test/`** — interactive test panel with three scenarios: naive signal crash, the gap after commit, and the reliable outbox fix. Each scenario has an explanation, code, and a button to try it
+- **`/admin/`** — browse orders, payments, and task results
+
+To use the background worker instead of the test panel's "Process Tasks" button:
 
 ```bash
 python manage.py db_worker
 ```
 
-What you can try:
+CLI commands:
 
-| Command / URL | What it shows |
+| Command | What it does |
 |---|---|
 | `python manage.py seed_data` | Creates sample orders with pending payments |
 | `python manage.py complete_payment <id>` | Simulates a payment webhook — triggers the reliable signal |
+| `python manage.py complete_payment <id> --fail` | Simulates a failed payment |
 | `python manage.py poll_orders` | Polling fallback — finds and syncs stale orders |
-| `/admin/` | Browse orders, payments, and task results |
 
 Key files:
 - `reliable_signal/` — the `ReliableSignal` class and task
 - `payment/models.py` — `PaymentProcess` model, sends `send_reliable` inside transaction
 - `payment/signals.py` — signal definition using `ReliableSignal`
 - `order/models.py` — `Order` model, receiver reacts to payment changes
+- `test_views.py` — test panel backend (API endpoints for the interactive demo)
 
 ## Key Takeaways
 

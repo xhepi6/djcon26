@@ -17,7 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Task queue backend
     "django_tasks",
-    "django_tasks.backends.database",
+    "django_tasks_db",
     # Project apps
     "payment.apps.PaymentConfig",
     "order.apps.OrderConfig",
@@ -37,7 +37,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -62,7 +62,7 @@ DATABASES = {
 # The worker only sees it after commit.
 TASKS = {
     "default": {
-        "BACKEND": "django_tasks.backends.database.DatabaseBackend",
+        "BACKEND": "django_tasks_db.DatabaseBackend",
         "ENQUEUE_ON_COMMIT": False,
     }
 }

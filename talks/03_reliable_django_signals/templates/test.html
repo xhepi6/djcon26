@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 03 — Reliable Django Signals</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: #666; margin-bottom: 2rem; font-size: .9rem; }
+  h2 { font-size: 1.15rem; margin-bottom: .75rem; color: #333; }
+
+  /* Cards */
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .card p { margin-bottom: .5rem; font-size: .88rem; color: #444; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* Scenario cards */
+  .scenario { border-left: 4px solid #ddd; }
+  .scenario-bad { border-left-color: #dc3545; }
+  .scenario-good { border-left-color: #198754; }
+  .scenario .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .scenario .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; flex-shrink: 0; color: #fff; }
+  .scenario-bad .number { background: #dc3545; }
+  .scenario-good .number { background: #198754; }
+  .scenario .header h2 { margin: 0; font-size: 1.05rem; }
+
+  .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+  .explanation strong { color: #1a1a1a; }
+
+  /* Buttons */
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+  button { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+  button:hover { background: #f0f0f0; }
+  button.red { background: #dc3545; color: #fff; border-color: #dc3545; }
+  button.red:hover { background: #bb2d3b; }
+  button.green { background: #198754; color: #fff; border-color: #198754; }
+  button.green:hover { background: #157347; }
+  button.blue { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+  button.blue:hover { background: #0b5ed7; }
+  button.orange { background: #fd7e14; color: #fff; border-color: #fd7e14; }
+  button.orange:hover { background: #e06b0a; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Result box */
+  .result { border-radius: 6px; padding: .75rem 1rem; font-size: .85rem; margin-top: .75rem; display: none; }
+  .result.show { display: block; }
+  .result-bad { background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
+  .result-warn { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; }
+  .result-good { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }
+  .result strong { display: block; margin-bottom: .25rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; padding: .5rem .75rem; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: .8rem; color: #555; }
+  td { padding: .5rem .75rem; border-bottom: 1px solid #eee; }
+  .empty-row td { color: #999; text-align: center; padding: 1.5rem; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+  .badge-pending { background: #fff3cd; color: #856404; }
+  .badge-completed, .badge-succeeded, .badge-successful { background: #d1e7dd; color: #0f5132; }
+  .badge-cancelled, .badge-failed { background: #f8d7da; color: #842029; }
+  .badge-initiated { background: #e2e3e5; color: #41464b; }
+  .badge-ready { background: #cff4fc; color: #055160; }
+  .gap-badge { background: #dc3545; color: #fff; margin-left: .35rem; font-size: .7rem; letter-spacing: .03em; }
+  .queued-badge { background: #0d6efd; color: #fff; margin-left: .35rem; font-size: .7rem; letter-spacing: .03em; }
+
+  /* Code */
+  pre { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .85rem 1rem; overflow-x: auto; font-size: .78rem; line-height: 1.6; margin: .5rem 0; }
+  pre .kw { color: #569cd6; }
+  pre .fn { color: #dcdcaa; }
+  pre .str { color: #ce9178; }
+  pre .cmt { color: #6a9955; }
+  pre .cls { color: #4ec9b0; }
+  pre .hl { background: rgba(255, 213, 79, 0.15); display: inline; }
+  pre .bad { background: rgba(244, 67, 54, 0.15); display: inline; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin: .5rem 0; font-size: .82rem; }
+  .flow .step { padding: .3rem .6rem; border-radius: 5px; white-space: nowrap; }
+  .flow .step-ok { background: #d1e7dd; border: 1px solid #badbcc; }
+  .flow .step-db { background: #e3f2fd; border: 1px solid #bbdefb; }
+  .flow .step-bad { background: #f8d7da; border: 1px solid #f5c2c7; }
+  .flow .step-warn { background: #fff3cd; border: 1px solid #ffe69c; }
+  .flow .step-worker { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .flow .arrow { color: #999; font-weight: bold; }
+  .flow .crash { color: #dc3545; font-weight: bold; font-size: 1rem; }
+
+  section { margin-bottom: 1.75rem; }
+  .section-divider { border: 0; border-top: 2px solid #eee; margin: 2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>Talk 03 — Reliable Django Signals</h1>
+<p class="subtitle">When something important happens (payment succeeds), you need to tell other parts of your app. Django signals can lose that message. This page shows you how and why.</p>
+
+<!-- ============================================================ -->
+<!-- SETUP                                                        -->
+<!-- ============================================================ -->
+<section>
+<div class="card">
+  <h2>Setup</h2>
+  <p>The demo uses two models: <strong>Order</strong> (starts as <code>pending_payment</code>) and <strong>PaymentProcess</strong> (starts as <code>initiated</code>). When a payment completes, the order should update. The question is <em>how</em> to deliver that message reliably.</p>
+  <div class="actions">
+    <button class="blue" onclick="createOrder()">Create Order</button>
+    <button onclick="resetAll()">Reset All</button>
+  </div>
+  <table>
+    <thead><tr><th>Order</th><th>Amount</th><th>Order Status</th><th>Payment</th><th>Payment Status</th></tr></thead>
+    <tbody id="orders-body">
+      <tr class="empty-row"><td colspan="5">Click "Create Order" to start.</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SCENARIO 1: signal.send() inside transaction                 -->
+<!-- ============================================================ -->
+<section>
+<div class="card scenario scenario-bad">
+  <div class="header">
+    <div class="number">1</div>
+    <h2>signal.send() inside the transaction</h2>
+  </div>
+
+  <div class="explanation">
+    <p><strong>What happens:</strong> You call <code>signal.send()</code> inside <code>transaction.atomic()</code>. Django calls every receiver right there, inline. If any receiver raises an exception (email service down, database error, anything), the exception propagates up and the <strong>entire transaction rolls back</strong> — including the payment that was perfectly valid.</p>
+    <p><strong>The problem:</strong> A broken receiver kills the sender. Your payment was fine, but it gets rolled back because some unrelated code failed.</p>
+  </div>
+
+  <div class="flow">
+    <span class="step step-ok">payment.save()</span>
+    <span class="arrow">+</span>
+    <span class="step step-bad">signal.send() &rarr; receiver crashes!</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-bad">ROLLBACK (everything)</span>
+  </div>
+
+<pre><span class="kw">with</span> transaction.<span class="fn">atomic</span>():
+    payment.status = <span class="str">"succeeded"</span>
+    payment.<span class="fn">save</span>()
+
+    <span class="bad"><span class="cmt"># signal.send() calls receivers HERE, inside the transaction.</span>
+    <span class="cmt"># If a receiver raises, the entire transaction rolls back</span>
+    <span class="cmt"># — including the payment.save() above!</span>
+    signal.<span class="fn">send</span>(...)</span></pre>
+
+  <div class="actions">
+    <button class="red" onclick="naiveCrash()">Try it: receiver crashes</button>
+  </div>
+  <div class="result" id="result-1"></div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SCENARIO 2: signal.send() after transaction (the gap)        -->
+<!-- ============================================================ -->
+<section>
+<div class="card scenario scenario-bad">
+  <div class="header">
+    <div class="number">2</div>
+    <h2>signal.send() after the transaction — the gap</h2>
+  </div>
+
+  <div class="explanation">
+    <p><strong>OK, so move the signal outside the transaction?</strong> Now the payment is committed first, then you call <code>signal.send()</code>. But what if the server crashes between commit and send? The payment is saved in the database (it's committed), but the signal never fires. The order stays <code>pending_payment</code> forever. Nobody knows.</p>
+    <p><strong>The problem:</strong> There's a gap between "data saved" and "signal sent." Anything that happens in that gap (crash, restart, timeout) means the message is lost.</p>
+  </div>
+
+  <div class="flow">
+    <span class="step step-ok">payment.save()</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-ok">COMMIT</span>
+    <span class="arrow">&rarr;</span>
+    <span class="crash">CRASH</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-bad">signal.send() never happens</span>
+  </div>
+
+<pre><span class="kw">with</span> transaction.<span class="fn">atomic</span>():
+    payment.status = <span class="str">"succeeded"</span>
+    payment.<span class="fn">save</span>()
+<span class="cmt"># Transaction committed. Payment is saved.</span>
+
+<span class="bad"><span class="cmt"># Server crashes RIGHT HERE.</span>
+<span class="cmt"># signal.send() never runs. Order stays pending forever.</span>
+signal.<span class="fn">send</span>(...)</span></pre>
+
+  <div class="actions">
+    <button class="red" onclick="naiveGap()">Try it: crash after commit</button>
+    <button class="orange" onclick="pollOrders()">Poll Orders (the safety net)</button>
+  </div>
+  <div class="result" id="result-2"></div>
+
+  <div class="explanation" style="margin-top: .75rem; background: #fff3e0;">
+    <p><strong>Polling fallback:</strong> A cron job periodically checks: "are there orders stuck in <code>pending_payment</code> whose payment already succeeded?" If so, fix them. This catches anything the signal missed. Click "Poll Orders" above to try it.</p>
+  </div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SCENARIO 3: send_reliable() — the fix                        -->
+<!-- ============================================================ -->
+<section>
+<div class="card scenario scenario-good">
+  <div class="header">
+    <div class="number">3</div>
+    <h2>send_reliable() — the transactional outbox</h2>
+  </div>
+
+  <div class="explanation">
+    <p><strong>The fix:</strong> Instead of <em>calling</em> receivers, <strong>write a task row in the database</strong> inside the same transaction as the payment. The task row and the payment status change are committed together — or neither.</p>
+    <p><strong>If the transaction commits</strong> &rarr; both the payment AND the task are saved. A background worker will find the task and run the receiver. Even if the server crashes right after commit, the task is already in the DB.</p>
+    <p><strong>If the transaction rolls back</strong> &rarr; both the payment AND the task disappear. No phantom emails, no orphaned tasks.</p>
+    <p><strong>Same transaction = they live and die together.</strong></p>
+  </div>
+
+  <div class="flow">
+    <span class="step step-ok">payment.save()</span>
+    <span class="arrow">+</span>
+    <span class="step step-db">task row inserted</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-ok">COMMIT</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-worker">worker picks up task</span>
+    <span class="arrow">&rarr;</span>
+    <span class="step step-worker">receiver executes</span>
+  </div>
+
+<pre><span class="kw">with</span> transaction.<span class="fn">atomic</span>():
+    payment.status = <span class="str">"succeeded"</span>
+    payment.<span class="fn">save</span>()
+
+    <span class="hl"><span class="cmt"># Don't call receivers — save a task in the SAME transaction.</span>
+    <span class="cmt"># Task row is committed atomically with the payment.</span>
+    signal.<span class="fn">send_reliable</span>(...)</span></pre>
+
+  <div class="actions">
+    <button class="green" onclick="reliableSend(true)">Complete Payment (succeed)</button>
+    <button class="red" onclick="reliableSend(false)">Complete Payment (fail)</button>
+    <button class="orange" onclick="processTasks()">Process Tasks (run worker)</button>
+  </div>
+  <div class="result" id="result-3"></div>
+
+  <div class="explanation" style="margin-top: .75rem; background: #e8f5e9;">
+    <p><strong>Try it:</strong> Click "Complete Payment" — the order shows <span class="badge queued-badge" style="font-size:.75rem">QUEUED</span> (not STUCK). The payment is done, and a task is safely in the database. Then click "Process Tasks" to simulate the worker — the order updates. In production, <code>db_worker</code> runs continuously and processes tasks automatically.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TASK QUEUE                                                    -->
+<!-- ============================================================ -->
+<section>
+<div class="card">
+  <h2>Task Queue</h2>
+  <p style="font-size:.85rem; color:#666; margin-bottom:.75rem;">Tasks created by <code>send_reliable()</code>. The worker picks up READY tasks and executes the receivers.</p>
+  <table>
+    <thead><tr><th>Task</th><th>Status</th><th>Receiver</th><th>Payment</th><th>Enqueued</th></tr></thead>
+    <tbody id="tasks-body">
+      <tr class="empty-row"><td colspan="5">No tasks yet. Use Scenario 3 to see tasks appear.</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- KEY CODE                                                      -->
+<!-- ============================================================ -->
+<section>
+<div class="card">
+  <h2>Key Code: ReliableSignal</h2>
+  <p>Replaces <code>signal.send()</code>. Instead of calling receivers inline, enqueues a task per receiver inside the same DB transaction.</p>
+<pre><span class="kw">class</span> <span class="cls">ReliableSignal</span>(DjangoSignal):
+
+    <span class="kw">def</span> <span class="fn">send_reliable</span>(self, sender, **named):
+        <span class="kw">if not</span> self.receivers:
+            <span class="kw">return</span>
+
+        sync_receivers, _ = self._live_receivers(sender)
+
+        <span class="kw">for</span> receiver <span class="kw">in</span> sync_receivers:
+            <span class="hl"><span class="cmt"># Each receiver becomes a task row in the database.</span>
+            <span class="cmt"># Written inside the caller's transaction.atomic().</span>
+            execute_task_signal_receiver.<span class="fn">enqueue</span>(
+                receiver_qualname=<span class="fn">callable_to_qualname</span>(receiver),
+                named=named,
+            )</span></pre>
+</div>
+</section>
+
+<script>
+const API = '/test/api';
+
+function badge(status) {
+  const cls = {
+    pending_payment: 'badge-pending', completed: 'badge-completed', cancelled: 'badge-cancelled',
+    initiated: 'badge-initiated', succeeded: 'badge-succeeded', failed: 'badge-failed',
+    READY: 'badge-ready', SUCCESSFUL: 'badge-successful', FAILED: 'badge-failed',
+  }[status] || '';
+  return `<span class="badge ${cls}">${status.replace('_', ' ')}</span>`;
+}
+
+async function post(url, body = {}) {
+  const res = await fetch(API + url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+async function refreshState() {
+  const data = await (await fetch(API + '/state/')).json();
+  renderOrders(data.orders, data.tasks);
+  renderTasks(data.tasks);
+}
+
+function renderOrders(orders, tasks) {
+  const tbody = document.getElementById('orders-body');
+  if (!orders.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Click "Create Order" to start.</td></tr>';
+    return;
+  }
+  // Build a set of payment IDs that have a READY task queued
+  const queuedPaymentIds = new Set(
+    tasks.filter(t => t.status === 'READY').map(t => t.payment_process_id)
+  );
+  tbody.innerHTML = orders.map(o => {
+    const paymentDone = o.payment_status !== 'initiated';
+    const orderPending = o.status === 'pending_payment';
+    let extraBadge = '';
+    if (orderPending && paymentDone) {
+      if (queuedPaymentIds.has(o.payment_id)) {
+        // Task exists — worker will handle it. This is expected.
+        extraBadge = '<span class="badge queued-badge">QUEUED</span>';
+      } else {
+        // No task — signal was lost. Truly stuck.
+        extraBadge = '<span class="badge gap-badge">STUCK</span>';
+      }
+    }
+    return `<tr>
+      <td>#${o.id}</td>
+      <td>$${(o.amount / 100).toFixed(2)}</td>
+      <td>${badge(o.status)} ${extraBadge}</td>
+      <td>#${o.payment_id}</td>
+      <td>${badge(o.payment_status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTasks(tasks) {
+  const tbody = document.getElementById('tasks-body');
+  if (!tasks.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No tasks yet. Use Scenario 3 to see tasks appear.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = tasks.map(t => {
+    const shortId = t.id.split('-')[0];
+    const receiver = t.receiver.split('::').pop() || t.receiver;
+    const time = t.enqueued_at ? new Date(t.enqueued_at).toLocaleTimeString() : '';
+    return `<tr>
+      <td title="${t.id}">${shortId}...</td>
+      <td>${badge(t.status)}</td>
+      <td>${receiver}</td>
+      <td>${t.payment_process_id ? '#' + t.payment_process_id : ''}</td>
+      <td>${time}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showResult(id, cls, html) {
+  const el = document.getElementById('result-' + id);
+  el.className = 'result show ' + cls;
+  el.innerHTML = html;
+}
+
+function hideResult(id) {
+  const el = document.getElementById('result-' + id);
+  el.className = 'result';
+  el.innerHTML = '';
+}
+
+function findInitiated(orders) {
+  return orders.find(o => o.payment_status === 'initiated');
+}
+
+async function createOrder() {
+  const data = await post('/create-order/');
+  [1, 2, 3].forEach(hideResult);
+  await refreshState();
+}
+
+async function naiveCrash() {
+  const state = await (await fetch(API + '/state/')).json();
+  const pending = findInitiated(state.orders);
+  if (!pending) {
+    showResult(1, 'result-warn', '<strong>No available orders.</strong> Create an order first.');
+    return;
+  }
+  const data = await post('/naive-crash/', { payment_id: pending.payment_id });
+  if (data.rolled_back) {
+    showResult(1, 'result-bad',
+      `<strong>Transaction rolled back!</strong> ` +
+      `Payment #${data.payment_id} is still <code>${data.payment_status}</code>. ` +
+      `The payment was valid, but the receiver crashed and took the whole transaction down with it. ` +
+      `<br><em>Error: ${data.error}</em>`
+    );
+  } else if (data.error) {
+    showResult(1, 'result-warn', data.error);
+  }
+  await refreshState();
+}
+
+async function naiveGap() {
+  const state = await (await fetch(API + '/state/')).json();
+  const pending = findInitiated(state.orders);
+  if (!pending) {
+    showResult(2, 'result-warn', '<strong>No available orders.</strong> Create an order first.');
+    return;
+  }
+  const data = await post('/naive-gap/', { payment_id: pending.payment_id });
+  if (data.crashed_in_gap) {
+    showResult(2, 'result-bad',
+      `<strong>Payment committed, signal lost!</strong> ` +
+      `Payment #${data.payment_id} is <code>succeeded</code> in the database, ` +
+      `but the order is still <code>pending_payment</code>. No task was enqueued. ` +
+      `The server "crashed" between commit and signal.send(). ` +
+      `<br><br>Click <strong>"Poll Orders"</strong> to see how the safety net catches this.`
+    );
+  }
+  await refreshState();
+}
+
+async function reliableSend(succeeded) {
+  const state = await (await fetch(API + '/state/')).json();
+  const pending = findInitiated(state.orders);
+  if (!pending) {
+    showResult(3, 'result-warn', '<strong>No available orders.</strong> Create an order first.');
+    return;
+  }
+  const data = await post('/reliable-send/', { payment_id: pending.payment_id, succeeded });
+  if (data.ok) {
+    const label = succeeded ? 'succeeded' : 'failed';
+    showResult(3, 'result-good',
+      `<strong>Payment #${data.payment_id} &rarr; ${label}. Task enqueued safely.</strong> ` +
+      `The order is still <code>pending_payment</code> — that's expected! The task is in the database (QUEUED badge). ` +
+      `Unlike Scenario 2, even if the server crashed right now, the task would survive. ` +
+      `<br><br>Click <strong>"Process Tasks"</strong> to simulate the background worker picking it up.`
+    );
+  } else {
+    showResult(3, 'result-warn', data.error);
+  }
+  await refreshState();
+}
+
+async function processTasks() {
+  const data = await post('/process-tasks/');
+  if (data.processed > 0) {
+    showResult(3, 'result-good',
+      `<strong>Worker processed ${data.processed} task(s).</strong> ` +
+      `The receiver ran and updated the order. Check the table above — the gap is closed.`
+    );
+  } else {
+    showResult(3, 'result-warn', '<strong>No pending tasks.</strong> Complete a payment with Scenario 3 first.');
+  }
+  await refreshState();
+}
+
+async function pollOrders() {
+  const data = await post('/poll/');
+  if (data.synced.length) {
+    const items = data.synced.map(s => `Order #${s.order_id} &rarr; ${s.status}`).join(', ');
+    showResult(2, 'result-good',
+      `<strong>Poll caught ${data.synced.length} stuck order(s)!</strong> ${items}. ` +
+      `This is the safety net: a periodic check that finds orders whose payment completed but the signal was lost.`
+    );
+  } else {
+    showResult(2, 'result-warn', '<strong>All orders are in sync.</strong> No stuck orders to fix.');
+  }
+  await refreshState();
+}
+
+async function resetAll() {
+  await post('/reset/');
+  [1, 2, 3].forEach(hideResult);
+  await refreshState();
+}
+
+refreshState();
+</script>
+</body>
+</html>

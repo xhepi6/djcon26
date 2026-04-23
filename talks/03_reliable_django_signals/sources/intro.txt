@@ -1,5 +1,0 @@
-Django signals are extremely useful for decoupling modules and implementing complicated workflows. However, the underlying transport for Django Signals makes them unreliable and subject to unexpected failures. In the talk I demonstrate several strategies for decoupling modules, including Django Signals, and discuss different aspects such as user experience and fault tolerance. Finally, I present an alternative underlying transport implementation for Django Signals using the new tasks framework in Django 6 that addresses the shortcomings of all other approaches. The alternative implementation makes Django Signals reliable for mission critical workflow and for applications that require high reliability and fault tolerance.
-
-
-speaker: 
-Haki Benita
