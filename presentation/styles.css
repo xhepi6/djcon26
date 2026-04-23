@@ -1,0 +1,436 @@
+/* DjangoCon Europe 2026 Recap — Dark Django theme
+ *
+ * Deep charcoal background, Django green primary, warm amber accent.
+ * Designed for code-heavy technical content.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ===========================================
+   CSS VARIABLES
+   =========================================== */
+:root {
+  --background-color: #0f1923;
+  --section-divider-bg: #0a1219;
+
+  /* Typography */
+  --heading-font: "Inter", Helvetica, sans-serif;
+  --body-font: "Inter", Helvetica, sans-serif;
+  --code-font: "JetBrains Mono", "Fira Code", monospace;
+  --base-font-size: 32px;
+  --text-size: 16pt;
+  --h1-size: 48pt;
+  --h2-size: 32pt;
+  --h3-size: 22pt;
+  --footnote-size: 11pt;
+
+  /* Colors */
+  --primary-color: #44B78B;
+  --secondary-color: #F2A93B;
+  --text-color: #E0E4E8;
+  --muted-color: #7B8DA0;
+  --line-color: #2A3A4A;
+  --danger-color: #E85B5B;
+  --code-bg: #162030;
+
+  /* Layout */
+  --slide-padding: 60px;
+  --slide-padding-top: 40px;
+  --content-gap: 25px;
+  --box-radius: 6px;
+}
+
+/* ===========================================
+   BASE STYLES
+   =========================================== */
+
+.reveal {
+  font-family: var(--body-font);
+  font-size: var(--base-font-size);
+}
+
+.reveal strong,
+.reveal b {
+  font-weight: 600;
+}
+
+.reveal-viewport {
+  background-color: var(--background-color);
+}
+
+.reveal-viewport.is-section-divider .slide-background.present {
+  background-color: var(--section-divider-bg) !important;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4,
+.reveal h5,
+.reveal h6 {
+  font-family: var(--heading-font);
+  text-transform: none;
+  color: var(--text-color);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.reveal h1 { font-size: var(--h1-size); }
+.reveal h2 { font-size: var(--h2-size); margin-bottom: 0; }
+.reveal h3 { font-size: var(--h3-size); }
+
+.reveal p,
+.reveal li,
+.reveal td,
+.reveal th,
+.reveal blockquote {
+  font-size: var(--text-size);
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* ===========================================
+   LISTS
+   =========================================== */
+
+.reveal ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0;
+}
+
+.reveal ul li {
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 8px;
+}
+
+.reveal ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 7px;
+  height: 7px;
+  background: var(--primary-color);
+  border-radius: 50%;
+}
+
+.reveal ul ul li::before {
+  background: var(--muted-color);
+  width: 5px;
+  height: 5px;
+}
+
+.reveal blockquote p {
+  font-size: inherit;
+}
+
+/* ===========================================
+   SLIDE LAYOUT
+   =========================================== */
+
+.reveal .slides section {
+  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: var(--slide-padding-top) var(--slide-padding) var(--slide-padding) var(--slide-padding) !important;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.reveal .slides section.stack {
+  padding: 0 !important;
+}
+
+.reveal .slides section > .content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: var(--content-gap);
+  text-align: left;
+}
+
+.reveal .slides section > .footnote {
+  position: absolute;
+  bottom: 15px;
+  left: var(--slide-padding);
+  right: var(--slide-padding);
+  font-size: var(--footnote-size);
+  color: var(--muted-color);
+}
+
+/* ===========================================
+   SECTION DIVIDERS
+   =========================================== */
+
+.reveal .slides section.section-divider {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center;
+}
+
+.reveal .slides section.section-divider h1 {
+  font-size: 52pt;
+  text-align: center;
+  color: var(--primary-color);
+}
+
+.reveal .slides section.section-divider p {
+  font-size: 20pt;
+  color: var(--muted-color);
+}
+
+/* ===========================================
+   TEXT SIZE UTILITIES
+   =========================================== */
+
+.text-lg { font-size: 18pt !important; }
+.text-xl { font-size: 20pt !important; }
+.text-2xl { font-size: 24pt !important; }
+.text-3xl { font-size: 28pt !important; }
+.text-4xl { font-size: 32pt !important; }
+
+.text-muted { color: var(--muted-color) !important; }
+.text-center { text-align: center !important; }
+.text-uppercase { text-transform: uppercase; letter-spacing: 0.1em; }
+.font-light { font-weight: 300; }
+.font-bold { font-weight: 600; }
+
+/* ===========================================
+   CODE BLOCKS
+   =========================================== */
+
+.reveal pre {
+  width: 100%;
+  margin: 12px 0;
+  box-shadow: none;
+  font-size: 13pt;
+}
+
+.reveal pre code {
+  font-family: var(--code-font);
+  background: var(--code-bg);
+  border: 1px solid var(--line-color);
+  border-radius: var(--box-radius);
+  padding: 16px 20px;
+  max-height: 420px;
+  line-height: 1.45;
+}
+
+.reveal code {
+  font-family: var(--code-font);
+  font-size: 0.85em;
+  color: var(--secondary-color);
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.reveal pre code {
+  color: var(--text-color);
+}
+
+/* Fix: step-through line highlights clone the <code> block as fragments.
+   Without this, clones stack vertically and push surrounding content off-screen.
+   Absolute-position the clones so they overlay on top of the original. */
+.reveal pre {
+  position: relative !important;
+  overflow: hidden;
+}
+
+.reveal pre code.fragment {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box;
+}
+
+/* ===========================================
+   BLOCKQUOTES
+   =========================================== */
+
+.reveal blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: 20px;
+  margin: 15px 0;
+  font-style: italic;
+  background: none;
+  box-shadow: none;
+  width: 100%;
+  max-width: none;
+}
+
+.reveal blockquote cite {
+  display: block;
+  margin-top: 8px;
+  font-style: normal;
+  color: var(--muted-color);
+}
+
+/* ===========================================
+   TABLES
+   =========================================== */
+
+.reveal table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.reveal table th {
+  background: var(--code-bg);
+  color: var(--primary-color);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--line-color);
+}
+
+.reveal table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-color);
+}
+
+/* ===========================================
+   CUSTOM COMPONENTS
+   =========================================== */
+
+/* Stat boxes for numbers + labels */
+.stat-box {
+  background: var(--code-bg);
+  border: 1px solid var(--line-color);
+  border-radius: var(--box-radius);
+  padding: 16px 20px;
+  text-align: center;
+}
+
+.stat-box .stat-number {
+  font-size: 28pt;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.stat-box .stat-label {
+  font-size: 11pt;
+  color: var(--muted-color);
+  margin: 4px 0 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Info cards */
+.info-card {
+  background: var(--code-bg);
+  border: 1px solid var(--line-color);
+  border-radius: var(--box-radius);
+  padding: 16px 20px;
+}
+
+.info-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 16pt;
+  color: var(--primary-color);
+}
+
+/* Incident card for attack examples */
+.incident-card {
+  background: var(--code-bg);
+  border-left: 3px solid var(--danger-color);
+  border-radius: 0 var(--box-radius) var(--box-radius) 0;
+  padding: 12px 16px;
+}
+
+.incident-card h3 {
+  margin: 0 0 4px 0;
+  font-size: 14pt;
+  color: var(--danger-color);
+}
+
+.incident-card p {
+  margin: 0;
+  font-size: 13pt;
+}
+
+/* Speaker tag */
+.speaker-tag {
+  font-size: 12pt;
+  color: var(--muted-color);
+  margin-top: 4px;
+}
+
+/* Comparison before/after */
+.vs-label {
+  font-size: 11pt;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+}
+
+/* Title slide styling */
+.title-slide h1 {
+  color: var(--primary-color);
+  font-size: 52pt;
+  margin-bottom: 10px;
+}
+
+/* Decorative top bar on all slides */
+.reveal .slides section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+}
+
+.reveal .slides section.section-divider::before {
+  height: 0;
+}
+
+/* Progress bar color */
+.reveal .progress span {
+  background: var(--primary-color);
+}
+
+/* Slide number styling */
+.reveal .slide-number {
+  color: var(--muted-color);
+  font-family: var(--body-font);
+  font-size: 10pt;
+}
+
+/* ===========================================
+   SCREENSHOT IMAGES
+   =========================================== */
+
+.reveal img.screenshot {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--box-radius);
+  border: 1px solid var(--line-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.reveal img.screenshot-sm {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: var(--box-radius);
+  border: 1px solid var(--line-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* No top bar on vertical stack wrapper sections */
+.reveal .slides section.stack::before {
+  display: none;
+}
