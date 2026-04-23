@@ -127,7 +127,7 @@ class UserRole(models.Model):
 @receiver(post_save, sender=Role)
 @receiver(post_delete, sender=Role)
 def _rebuild_closure(sender, **kwargs):
-    rebuild_role_ancestry()   # see experiment/rbac/closure.py
+    rebuild_role_ancestry()   # see rbac/closure.py
 
 def rebuild_role_ancestry():
     with transaction.atomic():

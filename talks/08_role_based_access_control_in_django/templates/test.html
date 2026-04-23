@@ -449,8 +449,8 @@ function renderUsers(users) {
       if (a.scope) extras += ` <span class="badge b-scope">on ${e(a.scope)}</span>`;
       if (a.expires_at) {
         const label = a.expired
-          ? '<span class="badge b-expired">expired</span>'
-          : `<span class="badge b-active">expires ${a.seconds_left}s</span>`;
+          ? '<span class="badge b-expired" data-expires-at="' + e(a.expires_at) + '">expired</span>'
+          : '<span class="badge b-active" data-expires-at="' + e(a.expires_at) + '">expires ' + a.seconds_left + 's</span>';
         extras += " " + label;
       }
       html += `<span class="a">→ <span class="role">${e(a.role)}</span>${extras}</span>`;
@@ -563,13 +563,30 @@ async function pollJitOnce() {
   });
   const data = await res.json();
   const secondsLeft = Math.max(0, Math.ceil((jitExpiresAt - new Date()) / 1000));
+  tickExpiryBadges();
   if (data.result) {
     setJitDisplay(true, secondsLeft, null);
   } else {
     setJitDisplay(false, 0, "expired — same query, driven by the expires_at column");
+    tickExpiryBadges();
     // Stop polling shortly after it flips; user can re-trigger with the button.
     setTimeout(stopJitPolling, 2000);
   }
+}
+
+function tickExpiryBadges() {
+  const now = new Date();
+  document.querySelectorAll("[data-expires-at]").forEach((badge) => {
+    const exp = new Date(badge.dataset.expiresAt);
+    const left = Math.max(0, Math.ceil((exp - now) / 1000));
+    if (left > 0) {
+      badge.textContent = `expires ${left}s`;
+      badge.className = "badge b-active";
+    } else {
+      badge.textContent = "expired";
+      badge.className = "badge b-expired";
+    }
+  });
 }
 
 function setJitDisplay(result, secondsLeft, info) {
