@@ -163,7 +163,7 @@ What each management command shows:
 |---|---|
 | `seed_data` | Raw-SQL inserts (the composite-PK + IDENTITY "leaky abstraction") |
 | `show_partitions` | `pg_inherits` view of children with bounds, row counts, on-disk size |
-| `demo_pruning` | `EXPLAIN ANALYZE` showing 8 of 9 partitions pruned by the planner |
+| `demo_pruning` | `EXPLAIN ANALYZE` showing 7 of 8 partitions pruned by the planner |
 | `demo_pruning --no-partition-key` | Same query without `created_at` filter → `Append` over every partition |
 | `demo_orm` | `.count()`, `.filter()`, `.values()`, ordering — ORM-transparent across partitions |
 | `add_partition 2026-06` | `CREATE TABLE ... PARTITION OF` for next month |

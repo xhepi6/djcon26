@@ -71,4 +71,7 @@ class Command(BaseCommand):
         self.stdout.write("\n-- Result count --")
         self.stdout.write(f"{qs.count()} rows")
 
-        self.stdout.write("\nHint: rerun with --no-partition-key to see every partition scanned.")
+        if options["no_partition_key"]:
+            self.stdout.write("\nHint: rerun without --no-partition-key to see pruning in action.")
+        else:
+            self.stdout.write("\nHint: rerun with --no-partition-key to see every partition scanned.")
