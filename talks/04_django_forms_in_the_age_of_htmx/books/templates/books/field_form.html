@@ -1,8 +1,5 @@
 {% extends 'base.html' %}
 
-{# Non-HTMx full-page version of the same single-field form. Rendered when you
-   open /<pk>/<fieldname>/ directly in a browser (no HX-Request header). #}
-
 {% block main %}
 <h2>Edit <code>{{ fieldname }}</code> of &ldquo;{{ object.title }}&rdquo;</h2>
 <p class="subtle">Same view, same form — just the full-page template instead of a fragment.</p>

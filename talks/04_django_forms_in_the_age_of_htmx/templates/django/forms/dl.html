@@ -1,9 +1,7 @@
-{# Project-wide form template override.
-   Because 'django.forms' is listed in INSTALLED_APPS and this file lives at
-   templates/django/forms/dl.html, any Form with
-       template_name = 'django/forms/dl.html'
-   will render as a <dl>. Used by BookForm and SingleFieldFormMixin.
-#}
+{% comment %}Project-wide form template override.
+Because 'django.forms' is listed in INSTALLED_APPS and this file lives at
+templates/django/forms/dl.html, any Form with template_name = 'django/forms/dl.html'
+will render as a <dl>. Used by BookForm and SingleFieldFormMixin.{% endcomment %}
 <dl class="form">
 {% for field, errors in fields %}
     <dt>

@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Panel — Django Forms + HTMx</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 960px; margin: 2rem auto; padding: 0 1rem;
+    line-height: 1.5; color: #1a1a1a; background: #f5f5f5;
+}
+h1 { margin-bottom: 0.25rem; }
+.subtitle { color: #666; margin-bottom: 1.5rem; }
+a { color: #2563eb; }
+nav { margin-bottom: 2rem; }
+nav a { margin-right: 1rem; font-weight: 500; }
+
+/* Cards */
+.card {
+    background: #fff; border-radius: 10px; padding: 1.5rem;
+    margin-bottom: 1.5rem; border: 2px solid #e5e7eb;
+}
+.card h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+.card-old { border-left: 5px solid #f59e0b; }
+.card-new { border-left: 5px solid #10b981; }
+.card-plugin { border-left: 5px solid #8b5cf6; }
+.card-registry { border-left: 5px solid #6366f1; }
+.label {
+    display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+.label-old { background: #fef3c7; color: #92400e; }
+.label-new { background: #d1fae5; color: #065f46; }
+.label-plugin { background: #ede9fe; color: #5b21b6; }
+.label-registry { background: #e0e7ff; color: #3730a3; }
+
+/* Explanation */
+.explain { color: #444; margin-bottom: 1rem; line-height: 1.6; }
+.explain strong { color: #1a1a1a; }
+
+/* Flow diagram */
+.flow {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0.5rem; margin: 1rem 0; padding: 0.75rem;
+    background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.flow .step {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.7rem; border-radius: 6px;
+    font-size: 0.8rem; font-weight: 500; white-space: nowrap;
+}
+.flow .arrow { color: #94a3b8; font-size: 1.1rem; }
+.step-user { background: #dbeafe; color: #1e40af; }
+.step-htmx { background: #fef3c7; color: #92400e; }
+.step-django { background: #d1fae5; color: #065f46; }
+.step-bad { background: #fee2e2; color: #991b1b; }
+
+/* Code blocks */
+pre {
+    background: #1e293b; color: #e2e8f0; padding: 1rem;
+    border-radius: 8px; overflow-x: auto; font-size: 0.82rem;
+    line-height: 1.5; margin: 0.75rem 0;
+}
+pre code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; }
+.hl { background: rgba(250, 204, 21, 0.2); display: inline; }
+.comment { color: #64748b; }
+
+/* Interactive demo */
+.demo-area {
+    margin: 1rem 0; padding: 1rem;
+    background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.demo-area h3 { font-size: 0.95rem; color: #475569; margin-bottom: 0.75rem; }
+
+/* Inline-editable book in demo */
+.demo-book {
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.75rem 1rem; margin-bottom: 0.5rem; background: #fff;
+}
+.demo-book .book-title { font-weight: 600; margin-bottom: 0.25rem; }
+.demo-book dl {
+    display: grid; grid-template-columns: 140px 1fr;
+    gap: 0.3rem 0.75rem; margin: 0; font-size: 0.9rem;
+}
+.demo-book dt { color: #6b7280; }
+.demo-book dd { margin: 0; }
+
+/* Field editing (reused from main app) */
+.field .value { margin-right: 0.5rem; }
+.field .empty { color: #999; font-style: italic; }
+.field form { display: inline-block; }
+.field input[type=text],
+.field input[type=number],
+.field textarea {
+    padding: 0.2rem 0.4rem; border: 1px solid #888; border-radius: 4px; font: inherit;
+}
+
+/* Request log */
+.request-log {
+    margin-top: 0.75rem; max-height: 300px; overflow-y: auto;
+    font-size: 0.8rem;
+}
+.log-entry {
+    padding: 0.4rem 0.6rem; margin-bottom: 0.4rem;
+    border-radius: 6px; font-family: 'Cascadia Code', 'Consolas', monospace;
+}
+.log-get { background: #dbeafe; border: 1px solid #bfdbfe; }
+.log-post { background: #d1fae5; border: 1px solid #a7f3d0; }
+.log-label { font-weight: 600; font-size: 0.75rem; }
+.log-url { color: #1e40af; }
+.log-fragment {
+    margin-top: 0.3rem; padding: 0.3rem 0.5rem;
+    background: rgba(0,0,0,0.04); border-radius: 4px;
+    white-space: pre-wrap; font-size: 0.72rem; max-height: 150px;
+    overflow-y: auto; color: #374151;
+}
+
+/* Buttons */
+button, .btn {
+    cursor: pointer; padding: 0.3rem 0.8rem;
+    border: 1px solid #d1d5db; background: #fff; border-radius: 6px;
+    font-size: 0.85rem;
+}
+button:hover, .btn:hover { background: #f3f4f6; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-sm { padding: 0.15rem 0.5rem; font-size: 0.8rem; }
+
+/* Registry table */
+.registry-table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.75rem;
+}
+.registry-table th, .registry-table td {
+    padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid #e5e7eb;
+}
+.registry-table th { background: #f8fafc; font-weight: 600; color: #374151; }
+.badge {
+    display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600;
+}
+.badge-column { background: #dbeafe; color: #1e40af; }
+.badge-json { background: #ede9fe; color: #5b21b6; }
+
+/* Misc JSON viewer */
+.json-view {
+    background: #1e293b; color: #a5f3fc; padding: 0.5rem 0.75rem;
+    border-radius: 6px; font-family: monospace; font-size: 0.8rem;
+    white-space: pre-wrap; margin-top: 0.5rem;
+}
+
+.errorlist { color: crimson; margin: 0.2rem 0; padding: 0; list-style: none; font-size: 0.85rem; }
+.toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Django Forms + HTMx</h1>
+<p class="subtitle">DjangoCon Europe 2026 &mdash; Hanne Moa. Interactive demo of single-field form patterns.</p>
+<nav>
+    <a href="/">Book list (live demo)</a>
+    <a href="/new/">Classic form</a>
+    <a href="/test/">Test panel</a>
+</nav>
+
+<div class="toolbar">
+    <button class="btn" onclick="resetData()">Reset data</button>
+    <button class="btn" onclick="refreshState()">Refresh</button>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 1: The Classic Form — the "old way" -->
+<!-- ================================================================== -->
+
+<div class="card card-old">
+    <span class="label label-old">The Old Way</span>
+    <h2>One Big Form for Everything</h2>
+
+    <p class="explain">
+        Django's default approach: one <code>ModelForm</code> with all fields, rendered on a separate page.
+        You <strong>leave the list</strong>, navigate to an edit page, change what you need, submit, and go back.
+        It works, but for quick edits &mdash; fixing a typo in a title, updating a year &mdash;
+        it's heavy. You lose context, you wait for page loads, and the form shows fields you didn't want to touch.
+    </p>
+
+    <div class="flow">
+        <span class="step step-user">Click "Edit"</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-bad">Leave the list page</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-django">Full page with ALL fields</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-user">Change one field</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-django">Submit ALL fields</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-bad">Redirect back to list</span>
+    </div>
+
+<pre><code><span class="comment"># The classic approach: one ModelForm, all fields</span>
+class BookForm(forms.ModelForm):
+    class Meta:
+        model = Book
+        fields = ["title", "author", "year"]
+
+<span class="comment"># One view for the whole thing</span>
+class BookUpdateView(UpdateView):
+    model = Book
+    form_class = BookForm
+    template_name = "books/book_form.html"
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.5rem;">
+            Pick a book and click "Classic edit." Notice: you leave this page, see all fields, edit, come back.
+        </p>
+        <div id="classic-demo"></div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 2: One Form Per Field + HTMx — the main pattern -->
+<!-- ================================================================== -->
+
+<div class="card card-new">
+    <span class="label label-new">The New Way</span>
+    <h2>One Form Per Field + HTMx Inline Editing</h2>
+
+    <p class="explain">
+        Instead of one big form, you create <strong>one tiny form per field</strong>. Each is a <code>ModelForm</code>
+        with exactly one field. When you click "Edit", HTMx fires a <code>GET</code> request that returns
+        just the <code>&lt;form&gt;</code> fragment for that field. It swaps into the page
+        <strong>without a full reload</strong>. You edit, save &mdash; the server validates and returns the
+        updated value. The page never changes. You stay in context.
+    </p>
+
+    <div class="flow">
+        <span class="step step-user">Click "Edit"</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-htmx">hx-get: fetch form fragment</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-django">Server returns &lt;form&gt; HTML</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-htmx">HTMx swaps it inline</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-user">Edit &amp; Save</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-htmx">hx-post: submit one field</span>
+        <span class="arrow">&rarr;</span>
+        <span class="step step-django">Validate, save, return display fragment</span>
+    </div>
+
+<pre><code><span class="comment"># One form per field — a tiny ModelForm with exactly one field</span>
+class SingleFieldFormMixin:
+    fieldname: str
+    <span class="hl">def get_field(self):
+        return self[self.fieldname]   # the BoundField, for isolated rendering</span>
+
+class BookTitleForm(SingleFieldFormMixin, forms.ModelForm):
+    fieldname = "title"
+    class Meta:
+        model = Book
+        fields = ["title"]   <span class="comment"># just this one field</span>
+
+<span class="comment"># View: same URL returns a fragment for HTMx or a full page for browsers</span>
+def book_field_form(request, pk, fieldname):
+    book = get_object_or_404(Book, pk=pk)
+    form = get_forms(obj=book)[fieldname]
+    <span class="hl">template = "_field_form.html" if is_htmx(request) else "field_form.html"</span>
+    return render(request, template, {"object": book, "form": form})
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Try it &mdash; click any "Edit" button</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.5rem;">
+            The edit happens right here on the page. Watch the <strong>request log</strong> below to see
+            the HTMx requests and the HTML fragments coming back from Django.
+        </p>
+        <div id="inline-demo"></div>
+        <h3 style="margin-top: 1rem;">Request log <span style="font-weight: normal; color: #94a3b8;">(what HTMx is doing)</span></h3>
+        <div id="request-log" class="request-log">
+            <p style="color: #94a3b8; font-style: italic; font-family: system-ui;">Click an Edit button to see requests appear here...</p>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 3: JSON-backed Plugin Fields -->
+<!-- ================================================================== -->
+
+<div class="card card-plugin">
+    <span class="label label-plugin">Plugin Fields</span>
+    <h2>New Fields Without Migrations</h2>
+
+    <p class="explain">
+        Regular model fields need a migration every time you add one. But what if you need per-tenant custom fields,
+        or you just want to add a "notes" field quickly?
+        <strong>Store values in a <code>JSONField</code></strong> instead of a column. The <code>JSONBackedMixin</code>
+        reads and writes to <code>instance.misc[fieldname]</code>. Adding a new editable field to the UI is
+        <strong>one Python class</strong> &mdash; no <code>makemigrations</code>, no schema change.
+    </p>
+
+<pre><code><span class="comment"># The model has a JSONField for schemaless storage</span>
+class Book(models.Model):
+    title = models.CharField(max_length=255)        <span class="comment"># column</span>
+    author = models.CharField(max_length=255)       <span class="comment"># column</span>
+    year = models.PositiveSmallIntegerField()        <span class="comment"># column</span>
+    <span class="hl">misc = models.JSONField(default=dict, blank=True)  # plugin fields live here</span>
+
+<span class="comment"># Mixin: read/write from instance.misc instead of a column</span>
+class JSONBackedMixin:
+    json_backed = True
+    def __init__(self, instance=None, **kwargs):
+        value = instance.misc.get(self.fieldname, "")
+        kwargs.setdefault("initial", {})[self.fieldname] = value
+        super().__init__(**kwargs)
+    def save(self, **_):
+        <span class="hl">self.instance.misc[self.fieldname] = self.cleaned_data[self.fieldname]</span>
+        self.instance.save()
+
+<span class="comment"># Adding a new field = adding one class. No migration.</span>
+<span class="hl">class TriviaForm(JSONBackedMixin, SingleFieldFormMixin, forms.Form):
+    fieldname = "trivia"
+    trivia = forms.CharField(widget=forms.Textarea, required=False)</span>
+</code></pre>
+
+    <div class="demo-area">
+        <h3>See it in the database</h3>
+        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.5rem;">
+            "Trivia" and "Notes" above are JSON-backed. When you edit them, the value is stored in
+            <code>book.misc</code>. Here's what that JSON looks like right now:
+        </p>
+        <div id="json-demo"></div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- CARD 4: The Registry -->
+<!-- ================================================================== -->
+
+<div class="card card-registry">
+    <span class="label label-registry">Registry</span>
+    <h2>Auto-Discovery via __subclasses__()</h2>
+
+    <p class="explain">
+        Every <code>SingleFieldFormMixin</code> subclass is automatically discoverable.
+        The view calls <code>SingleFieldFormMixin.__subclasses__()</code> to find all registered field forms.
+        No manual list to maintain. Add a new form class, it appears in the UI.
+    </p>
+
+<pre><code><span class="comment"># The view walks every subclass — no hardcoded list</span>
+def get_forms(data=None, obj=None):
+    forms = {}
+    <span class="hl">for Form in SingleFieldFormMixin.__subclasses__():</span>
+        kwargs = {"instance": obj}
+        if Form.fieldname in data:
+            kwargs["data"] = data
+        forms[Form.fieldname] = Form(**kwargs)
+    return forms
+
+<span class="comment"># For deeper hierarchies, use __init_subclass__ instead:</span>
+class BetterSingleFieldForm:
+    registry: dict = {}
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if getattr(cls, "fieldname", None):
+            <span class="hl">cls.registry[cls.fieldname] = cls</span>
+</code></pre>
+
+    <div class="demo-area">
+        <h3>Currently registered forms</h3>
+        <table class="registry-table" id="registry-table">
+            <thead><tr><th>Field</th><th>Class</th><th>Storage</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// =====================================================================
+// State & helpers
+// =====================================================================
+
+let books = [];
+let logEntries = [];
+
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    return res.json();
+}
+
+function refreshState() {
+    fetchJSON('/test/api/state/').then(data => {
+        books = data.books;
+        renderClassicDemo();
+        renderInlineDemo();
+        renderJsonDemo();
+    });
+    fetchJSON('/test/api/registry/').then(data => {
+        renderRegistry(data.forms);
+    });
+}
+
+async function resetData() {
+    await fetch('/test/api/reset/', { method: 'POST' });
+    logEntries = [];
+    renderLog();
+    refreshState();
+}
+
+// =====================================================================
+// Card 1: Classic demo
+// =====================================================================
+
+function renderClassicDemo() {
+    const el = document.getElementById('classic-demo');
+    if (!books.length) {
+        el.innerHTML = '<p style="color:#94a3b8;">No books. Click "Reset data" above.</p>';
+        return;
+    }
+    el.innerHTML = books.map(b => `
+        <div class="demo-book" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><strong>${esc(b.title)}</strong> &mdash; ${esc(b.fields.author)} (${b.fields.year})</span>
+            <a href="/${b.id}/edit/" class="btn btn-sm">Classic edit &rarr;</a>
+        </div>
+    `).join('');
+}
+
+// =====================================================================
+// Card 2: Inline demo with HTMx
+// =====================================================================
+
+function renderInlineDemo() {
+    const el = document.getElementById('inline-demo');
+    if (!books.length) {
+        el.innerHTML = '<p style="color:#94a3b8;">No books. Click "Reset data" above.</p>';
+        return;
+    }
+    // Only show column fields (title, author, year) for a clean demo.
+    // Plugin fields are shown in Card 3.
+    const fields = ['title', 'author', 'year'];
+    const labels = { title: 'Title', author: 'Author', year: 'Year' };
+
+    el.innerHTML = books.map(b => `
+        <div class="demo-book">
+            <div class="book-title">#${b.id}</div>
+            <dl>
+                ${fields.map(fn => `
+                    <dt>${labels[fn]}</dt>
+                    <dd>
+                        <div class="field" data-field="${fn}" id="inline-${b.id}-${fn}">
+                            <span class="value">${b.fields[fn] || '<em class="empty">(empty)</em>'}</span>
+                            <button type="button" class="btn-sm"
+                                hx-get="/${b.id}/${fn}/"
+                                hx-target="#inline-${b.id}-${fn}"
+                                hx-swap="innerHTML">Edit</button>
+                        </div>
+                    </dd>
+                `).join('')}
+            </dl>
+        </div>
+    `).join('');
+
+    // Re-process HTMx on the new content
+    htmx.process(el);
+}
+
+// =====================================================================
+// Card 3: JSON demo
+// =====================================================================
+
+function renderJsonDemo() {
+    const el = document.getElementById('json-demo');
+    if (!books.length) {
+        el.innerHTML = '<p style="color:#94a3b8;">No books. Click "Reset data" above.</p>';
+        return;
+    }
+    el.innerHTML = books.map(b => `
+        <div style="margin-bottom: 0.75rem;">
+            <strong style="font-size: 0.9rem;">${esc(b.title)}</strong>
+            <span style="color: #6b7280; font-size: 0.8rem;"> &mdash; book.misc =</span>
+            <div class="json-view">${JSON.stringify(b.misc, null, 2) || '{}'}</div>
+            <div style="margin-top: 0.3rem; display: flex; gap: 0.5rem;">
+                <a href="/${b.id}/trivia/" class="btn btn-sm" style="font-size: 0.75rem;">Edit trivia</a>
+                <a href="/${b.id}/notes/" class="btn btn-sm" style="font-size: 0.75rem;">Edit notes</a>
+            </div>
+        </div>
+    `).join('');
+}
+
+// =====================================================================
+// Card 4: Registry
+// =====================================================================
+
+function renderRegistry(forms) {
+    const tbody = document.querySelector('#registry-table tbody');
+    tbody.innerHTML = forms.map(f => `
+        <tr>
+            <td><code>${esc(f.fieldname)}</code></td>
+            <td><code>${esc(f.class_name)}</code> <span style="color:#94a3b8; font-size:0.75rem;">(${esc(f.module)})</span></td>
+            <td>${f.json_backed
+                ? '<span class="badge badge-json">JSONField</span>'
+                : '<span class="badge badge-column">DB column</span>'
+            }</td>
+        </tr>
+    `).join('');
+}
+
+// =====================================================================
+// Request log — intercept HTMx events
+// =====================================================================
+
+function addLog(method, url, fragment) {
+    logEntries.unshift({ method, url, fragment, time: new Date().toLocaleTimeString() });
+    if (logEntries.length > 20) logEntries.pop();
+    renderLog();
+}
+
+function renderLog() {
+    const el = document.getElementById('request-log');
+    if (!logEntries.length) {
+        el.innerHTML = '<p style="color: #94a3b8; font-style: italic; font-family: system-ui;">Click an Edit button to see requests appear here...</p>';
+        return;
+    }
+    el.innerHTML = logEntries.map(e => {
+        const cls = e.method === 'GET' ? 'log-get' : 'log-post';
+        const label = e.method === 'GET' ? 'GET' : 'POST';
+        let html = `<div class="log-entry ${cls}">`;
+        html += `<span class="log-label">${label}</span> <span class="log-url">${esc(e.url)}</span>`;
+        html += `<span style="color:#94a3b8; float:right; font-size:0.7rem;">${e.time}</span>`;
+        if (e.fragment) {
+            // Clean up the fragment for display (remove comments, trim)
+            const clean = e.fragment
+                .replace(/\{#[\s\S]*?#\}/g, '')  // remove Django template comments
+                .replace(/^\s*\n/gm, '')           // remove blank lines
+                .trim()
+                .substring(0, 500);
+            html += `<div class="log-fragment">${esc(clean)}</div>`;
+        }
+        html += `</div>`;
+        return html;
+    }).join('');
+}
+
+// Listen to HTMx events to capture requests/responses
+document.addEventListener('htmx:beforeRequest', function(evt) {
+    const xhr = evt.detail.xhr;
+    const method = evt.detail.requestConfig.verb.toUpperCase();
+    const url = evt.detail.requestConfig.path;
+    // Store method+url on the xhr so we can retrieve them in afterRequest
+    xhr._logMethod = method;
+    xhr._logUrl = url;
+});
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+    const xhr = evt.detail.xhr;
+    const method = xhr._logMethod || '?';
+    const url = xhr._logUrl || '?';
+    const fragment = xhr.responseText || '';
+    addLog(method, url, fragment);
+    // Also refresh state after POSTs (saves)
+    if (method === 'POST') {
+        setTimeout(refreshState, 300);
+    }
+});
+
+// =====================================================================
+// Utils
+// =====================================================================
+
+function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// =====================================================================
+// Init
+// =====================================================================
+
+refreshState();
+</script>
+</body>
+</html>

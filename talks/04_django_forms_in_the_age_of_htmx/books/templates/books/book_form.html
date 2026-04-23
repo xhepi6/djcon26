@@ -1,8 +1,5 @@
 {% extends 'base.html' %}
 
-{# Classic one-big-form view — for comparison with the single-field pattern.
-   Uses BookForm (ModelForm with all three columns). #}
-
 {% block main %}
 <h2>{% if object %}Edit &ldquo;{{ object.title }}&rdquo;{% else %}New book{% endif %}</h2>
 <p class="subtle">Classic Django form — every field in one submit. Compare with the inline edit on <a href="{% url 'book-list' %}">the list page</a>.</p>

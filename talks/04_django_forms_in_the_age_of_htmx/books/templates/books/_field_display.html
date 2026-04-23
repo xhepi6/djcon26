@@ -1,6 +1,6 @@
-{# Display partial: the 'read mode' of a field.
-   When Edit is clicked, hx-get fetches the form fragment and swaps it into
-   the parent `.field` div (innerHTML). On Save/Cancel it swaps back to this. #}
+{% comment %}Display partial: the 'read mode' of a field.
+When Edit is clicked, hx-get fetches the form fragment and swaps it into
+the parent .field div (innerHTML). On Save/Cancel it swaps back to this.{% endcomment %}
 <span class="value">
     {% if value %}{{ value }}{% else %}<em class="empty">(empty)</em>{% endif %}
 </span>

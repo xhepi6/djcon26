@@ -13,9 +13,6 @@ Saving POSTs just that field and swaps the value back.</p>
             {% for f in row.fields %}
                 <dt>{{ f.label }}</dt>
                 <dd>
-                    {# Each field lives inside a .field container. Both display
-                       and edit fragments replace the innerHTML of this div,
-                       so Edit → form → Save cycles never disturb siblings. #}
                     <div class="field" data-field="{{ f.fieldname }}">
                         {% include 'books/_field_display.html' with object=row.book fieldname=f.fieldname value=f.value %}
                     </div>

@@ -224,35 +224,39 @@ Drop `__subclasses__()` in favour of `BetterSingleFieldForm.registry`. Works acr
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project with all of the above wired up.
+This folder is a runnable Django project with all of the above wired up.
 
 ```bash
-cd experiment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_books
 python manage.py runserver
 ```
 
-Then open <http://127.0.0.1:8000/>.
+Then open:
+
+- **`/test/`** — interactive test panel with four sections: the classic form approach, single-field inline editing with a live HTMx request log, JSON-backed plugin fields, and the auto-discovery registry
+- **`/`** — book list with inline edit (the live demo)
 
 | Route | What it shows |
 |---|---|
+| `/test/` | Test panel — explains each pattern with code, flow diagrams, and interactive demos |
 | `/` | Book list with inline edit — every field has its own Edit button (HTMx) |
 | `/<pk>/<fieldname>/` | GET — returns the one-field form. Full page if opened directly, fragment if requested by HTMx. Try both |
 | `/<pk>/<fieldname>/update/` | POST — saves one field, returns updated display fragment |
 | `/new/` | Classic one-big-form create — for comparison |
 | `/<pk>/edit/` | Classic one-big-form edit — for comparison |
 
-Noteworthy files:
+Key files:
 - `books/forms.py` — mixins, per-field forms, JSON-backed `TriviaForm` and `NotesForm`
 - `books/views.py` — `get_forms()` registry walk, `is_htmx()` branching
 - `books/templates/books/_field_display.html` and `_field_form.html` — the two HTMx partials
 - `books/widgets.py` — `HxWidgetMixin` demo (Bonus #1)
 - `books/registry.py` — `__init_subclass__` registry (Bonus #2)
 - `templates/django/forms/dl.html` — global form layout override (project-wide)
-
-The `misc` JSONField on `Book` stores Trivia and Notes — open `/admin`-equivalent data via `python manage.py seed_books --show` to see how plugin fields live alongside columns.
+- `test_views.py` — test panel backend (API endpoints for the interactive demo)
 
 ## Key Takeaways
 
