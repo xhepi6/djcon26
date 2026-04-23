@@ -1,4 +1,0 @@
-Until 2013, Django's atomic context manager didn't exist. This talk will explore how we had to manage database transactions -- as well as save-points, rollbacks, and commits -- before the ergonomics of atomic and what changed when it was introduced. By understanding what tools Django users had in Django 1.5 to make their code atomic, durable, or both, we can understand what problems atomic solved and how it made writing Django applications better. Fast-forward to 2026 and we all take atomic for granted. But what problems might it have for modern development? We take a look at where atomic can cause confusion and suggest some ways to handle that in the future using django-subatomic.
-
-
-Talker: Charlie Denton and Sam Searles-Bryant

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk 09 - Where Did It All Begin?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: #666; margin-bottom: 1.5rem; font-size: .9rem; }
+  h2 { font-size: 1.1rem; margin-bottom: .75rem; color: #333; }
+  h3 { font-size: .95rem; margin-bottom: .5rem; color: #444; }
+
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .concept { border-left: 4px solid #ddd; }
+  .concept-blue   { border-left-color: #3b82f6; }
+  .concept-green  { border-left-color: #10b981; }
+  .concept-amber  { border-left-color: #f59e0b; }
+  .concept-slate  { border-left-color: #64748b; }
+
+  .concept .header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .concept .number { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .85rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .concept-blue   .number { background: #3b82f6; }
+  .concept-green  .number { background: #10b981; }
+  .concept-amber  .number { background: #f59e0b; }
+  .concept-slate  .number { background: #64748b; }
+  .concept .header h2 { margin: 0; font-size: 1.05rem; }
+
+  .explanation { background: #f8f9fa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; font-size: .87rem; }
+  .explanation strong { color: #1a1a1a; }
+  .explanation code { background: #eef; padding: 1px 5px; border-radius: 3px; font-size: .82rem; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; align-items: center; }
+  button, select, input { padding: .45rem .9rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: .84rem; transition: all .15s; }
+  input { cursor: text; }
+  select { cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.blue  { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  button.blue:hover { background: #2563eb; }
+  button.green { background: #10b981; color: #fff; border-color: #10b981; }
+  button.green:hover { background: #059669; }
+  button.red   { background: #ef4444; color: #fff; border-color: #ef4444; }
+  button.red:hover { background: #dc2626; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .accounts-grid { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
+  .account-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: .6rem 1rem; background: #fafafa; font-size: .88rem; min-width: 140px; }
+  .account-card .a-name { font-weight: 700; color: #111; }
+  .account-card .a-balance { color: #065f46; font-weight: 600; font-size: 1rem; font-family: ui-monospace, monospace; }
+
+  .log-table-wrap { max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; padding: .4rem .6rem; background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: .78rem; color: #555; }
+  td { padding: .35rem .6rem; border-bottom: 1px solid #eee; }
+
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+  .b-begin     { background: #dbeafe; color: #1e40af; }
+  .b-commit    { background: #d1e7dd; color: #0f5132; }
+  .b-rollback  { background: #f8d7da; color: #842029; }
+  .b-savepoint { background: #fff3cd; color: #856404; }
+  .b-release   { background: #e2e8f0; color: #475569; }
+  .b-ok        { background: #d1e7dd; color: #0f5132; }
+  .b-err       { background: #f8d7da; color: #842029; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+  .col-panel { border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; }
+  .col-panel h3 { font-size: .9rem; margin-bottom: .5rem; }
+  .col-panel.atomic-panel   { border-top: 3px solid #f59e0b; }
+  .col-panel.subatomic-panel { border-top: 3px solid #10b981; }
+
+  .sql-hint { font-size: .82rem; color: #1e40af; background: #dbeafe; padding: .5rem .75rem; border-radius: 6px; margin-bottom: .5rem; border: 1px solid #bfdbfe; }
+  .sql-summary { font-size: .8rem; color: #444; margin: .4rem 0 .5rem; }
+  .sql-summary strong { color: #111; }
+
+  pre.sql {
+    background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: .7rem .9rem;
+    overflow-x: auto; font-size: .75rem; line-height: 1.55; margin: .25rem 0;
+    white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  pre.sql .kw  { color: #569cd6; font-weight: 600; }
+  pre.sql .str { color: #ce9178; }
+  pre.sql .num { color: #b5cea8; }
+  pre.sql .id  { color: #9cdcfe; }
+  pre.sql .tx-begin     { color: #93c5fd; font-weight: 700; }
+  pre.sql .tx-commit    { color: #6ee7b7; font-weight: 700; }
+  pre.sql .tx-rollback  { color: #fca5a5; font-weight: 700; }
+  pre.sql .tx-savepoint { color: #fcd34d; font-weight: 700; }
+  pre.sql .tx-release   { color: #a3a3a3; font-weight: 600; }
+
+  .form-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .form-row label { font-size: .84rem; color: #444; }
+  input[type=number] { width: 6rem; }
+
+  .toast { position: fixed; top: 1rem; right: 1rem; background: #1a1a1a; color: #fff; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; opacity: 0; transition: opacity .2s; z-index: 100; }
+  .toast.show { opacity: .95; }
+
+  code.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .result-panel { margin-top: .75rem; }
+  .empty-note { color: #999; font-size: .84rem; font-style: italic; }
+
+  .sp-counter { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; padding: .2rem .6rem; border-radius: 4px; font-weight: 600; }
+  .sp-counter.none { background: #d1e7dd; color: #0f5132; }
+  .sp-counter.some { background: #fff3cd; color: #856404; }
+</style>
+</head>
+<body>
+  <h1>Talk 09 - Where Did It All Begin?</h1>
+  <p class="subtitle">
+    <code class="mono">django-subatomic</code> - explicit transaction primitives for Django.
+    Compare atomic() savepoint noise vs zero-overhead subatomic transfers.
+  </p>
+
+  <div class="card concept concept-slate">
+    <div class="header">
+      <div class="number">i</div>
+      <h2>What you're looking at</h2>
+    </div>
+    <div class="explanation" style="margin-bottom:.75rem;">
+      <strong>atomic() problem:</strong> every nested <code>atomic()</code> creates a
+      <code>SAVEPOINT</code> + <code>RELEASE SAVEPOINT</code> pair, even when you don't
+      need partial rollback. At Kraken's scale (16M lines of Python), this adds up.<br><br>
+      <strong>subatomic solution:</strong> split <code>atomic()</code> into
+      <code>db.transaction()</code>, <code>db.transaction_required()</code>,
+      <code>db.savepoint()</code>, <code>db.durable()</code>.
+      Each says exactly what it does. No surprise savepoints.
+    </div>
+    <div class="actions">
+      <button class="red" onclick="doSeed()">Re-seed data</button>
+      <span id="meta" style="color:#666; font-size:.8rem;"></span>
+    </div>
+  </div>
+
+  <div class="card concept concept-blue">
+    <div class="header">
+      <div class="number">1</div>
+      <h2>Current database state</h2>
+    </div>
+    <div>
+      <h3>Accounts</h3>
+      <div class="accounts-grid" id="accounts"></div>
+    </div>
+    <div style="margin-top:1rem;">
+      <h3>Recent transfers</h3>
+      <div class="log-table-wrap">
+        <table id="log-table">
+          <thead><tr><th>from</th><th>to</th><th>amount</th><th>when</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card concept concept-amber">
+    <div class="header">
+      <div class="number">2</div>
+      <h2>atomic() vs subatomic - side by side</h2>
+    </div>
+    <div class="explanation">
+      Both demos transfer $200 from Alice to Bob. Alice is reset to $1000, Bob to $500
+      before each run. The only difference is the approach. Count the savepoints.
+    </div>
+    <div class="sql-hint">
+      Highlighted: <strong class="tx-savepoint-label">SAVEPOINT</strong> (yellow),
+      <strong>RELEASE SAVEPOINT</strong> (grey),
+      <strong>COMMIT</strong> (green), <strong>BEGIN</strong> (blue).
+    </div>
+    <div class="two-col">
+      <div class="col-panel atomic-panel">
+        <h3>atomic() - Django built-in</h3>
+        <div class="actions">
+          <button id="btn-atomic" class="blue" onclick="runAtomicDemo()">Run atomic() demo</button>
+        </div>
+        <div id="atomic-result" class="result-panel">
+          <span class="empty-note">Click to run. Watch for SAVEPOINT pairs.</span>
+        </div>
+      </div>
+      <div class="col-panel subatomic-panel">
+        <h3>subatomic - explicit primitives</h3>
+        <div class="actions">
+          <button id="btn-subatomic" class="green" onclick="runSubatomicDemo()">Run subatomic demo</button>
+        </div>
+        <div id="subatomic-result" class="result-panel">
+          <span class="empty-note">Click to run. No SAVEPOINT queries.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card concept concept-green">
+    <div class="header">
+      <div class="number">3</div>
+      <h2>Transfer panel</h2>
+    </div>
+    <div class="explanation">
+      Run a custom transfer between any two accounts. Choose the mode to see
+      exactly which SQL queries each approach generates.
+    </div>
+    <div class="form-row" style="margin-bottom:.75rem;">
+      <label>From</label>
+      <select id="tf-from"></select>
+      <label>To</label>
+      <select id="tf-to"></select>
+      <label>Amount $</label>
+      <input type="number" id="tf-amount" value="100" min="1" max="10000" step="1">
+      <label>Mode</label>
+      <select id="tf-mode">
+        <option value="atomic">atomic()</option>
+        <option value="subatomic">subatomic</option>
+      </select>
+      <button class="blue" onclick="doTransfer()">Transfer</button>
+    </div>
+    <div id="transfer-result" class="result-panel">
+      <span class="empty-note">Run a transfer to see the SQL.</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+var $ = function(s) { return document.querySelector(s); };
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+var e = escapeHtml;
+
+// SQL highlighting
+var TX_ENTRIES = [
+  ["RELEASE SAVEPOINT", "tx-release"],
+  ["SAVEPOINT", "tx-savepoint"],
+  ["BEGIN", "tx-begin"],
+  ["COMMIT", "tx-commit"],
+  ["ROLLBACK", "tx-rollback"],
+];
+
+var BREAK_KWS = [
+  "SELECT", "FROM", "INNER JOIN", "LEFT OUTER JOIN", "LEFT JOIN",
+  "WHERE", "UPDATE", "SET", "INSERT INTO", "VALUES", "DELETE FROM",
+  "GROUP BY", "ORDER BY", "LIMIT", "OFFSET",
+];
+
+var INLINE_KWS = new Set(["AND", "OR", "ON", "IN", "IS", "AS", "NOT", "NULL", "FOR UPDATE"]);
+
+function formatSql(sql) {
+  var src = sql.trim();
+  var out = "";
+  var depth = 0;
+  var i = 0;
+  var allKws = BREAK_KWS.slice().sort(function(a, b) { return b.length - a.length; });
+
+  function atWordStart() { return i === 0 || /[^A-Za-z0-9_]/.test(src[i - 1]); }
+  function matchKw() {
+    if (!atWordStart()) return null;
+    for (var ki = 0; ki < allKws.length; ki++) {
+      var kw = allKws[ki];
+      var len = kw.length;
+      if (src.slice(i, i + len).toUpperCase() === kw) {
+        var after = src[i + len];
+        if (!after || /[^A-Za-z0-9_"']/.test(after)) return kw;
+      }
+    }
+    return null;
+  }
+
+  while (i < src.length) {
+    var ch = src[i];
+    if (ch === "(") { out += "("; depth++; i++; continue; }
+    if (ch === ")") { out += ")"; depth = Math.max(0, depth - 1); i++; continue; }
+    if (ch === "'" || ch === '"') {
+      var q = ch;
+      var end = src.indexOf(q, i + 1);
+      out += src.slice(i, end === -1 ? src.length : end + 1);
+      i = end === -1 ? src.length : end + 1;
+      continue;
+    }
+    var kw = matchKw();
+    if (kw) {
+      if (out && !out.endsWith("\n") && out.trim() !== "") out += "\n";
+      out += "  ".repeat(depth) + kw.toUpperCase();
+      i += kw.length;
+      continue;
+    }
+    if (ch === " " && out.endsWith("\n")) { i++; continue; }
+    out += ch;
+    i++;
+  }
+  return out.replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").trim();
+}
+
+function highlightSql(formatted) {
+  var out = e(formatted);
+  // Transaction keywords
+  TX_ENTRIES.forEach(function(entry) {
+    var kw = entry[0], cls = entry[1];
+    var re = new RegExp(kw.replace(/ /g, "\\s+"), "g");
+    out = out.replace(re, '<span class="' + cls + '">' + kw + '</span>');
+  });
+  // SQL keywords
+  var sqlKwRe = /\b(SELECT|FROM|INNER JOIN|LEFT OUTER JOIN|LEFT JOIN|WHERE|UPDATE|SET|INSERT INTO|VALUES|DELETE FROM|AND|OR|GROUP BY|ORDER BY|LIMIT|OFFSET|ON|IN|IS|NULL|AS|NOT|FOR UPDATE)\b/g;
+  out = out.replace(sqlKwRe, '<span class="kw">$1</span>');
+  // strings
+  out = out.replace(/&#39;[^&]*?&#39;/g, function(m) { return '<span class="str">' + m + '</span>'; });
+  // numbers
+  out = out.replace(/\b(\d+)\b/g, '<span class="num">$1</span>');
+  // quoted identifiers
+  out = out.replace(/&quot;[^&]*?&quot;/g, function(m) { return '<span class="id">' + m + '</span>'; });
+  return out;
+}
+
+function txBadge(sql) {
+  var u = sql.toUpperCase().trim();
+  if (u.indexOf("BEGIN") === 0)              return '<span class="badge b-begin">BEGIN</span>';
+  if (u.indexOf("COMMIT") === 0)             return '<span class="badge b-commit">COMMIT</span>';
+  if (u.indexOf("ROLLBACK") === 0)           return '<span class="badge b-rollback">ROLLBACK</span>';
+  if (u.indexOf("RELEASE SAVEPOINT") === 0)  return '<span class="badge b-release">RELEASE SAVEPOINT</span>';
+  if (u.indexOf("SAVEPOINT") === 0)          return '<span class="badge b-savepoint">SAVEPOINT</span>';
+  return null;
+}
+
+function renderSqlLog(sql) {
+  if (!sql || sql.length === 0) return '<span class="empty-note">No queries captured.</span>';
+  var parts = sql.map(function(s) {
+    var badge = txBadge(s.trim());
+    var formatted = formatSql(s);
+    var pre = '<pre class="sql">' + highlightSql(formatted) + '</pre>';
+    return badge ? '<div style="margin:.2rem 0;">' + badge + '</div>' + pre : pre;
+  });
+  return parts.join("");
+}
+
+function spCounterHtml(sp, rel) {
+  if (sp === 0) return '<span class="sp-counter none">0 savepoints</span>';
+  return '<span class="sp-counter some">' + sp + ' SAVEPOINT + ' + rel + ' RELEASE</span>';
+}
+
+function setHtml(el, html) { el.innerHTML = html; }
+
+function renderDemoResult(containerId, data) {
+  var container = $(containerId);
+  if (!data.ok && data.error) {
+    setHtml(container, '<span class="badge b-err" style="font-size:.84rem;">Error: ' + e(data.error) + '</span>');
+    return;
+  }
+  var summary = '<div class="sql-summary"><strong>' + data.query_count + '</strong> SQL statements &nbsp;|&nbsp; ' + spCounterHtml(data.savepoint_count, data.release_count) + '</div>';
+  setHtml(container, summary + renderSqlLog(data.sql));
+}
+
+// State
+async function loadState() {
+  var res = await fetch("/test/api/state/");
+  var data = await res.json();
+  renderAccounts(data.accounts);
+  renderLog(data.transfer_log);
+  var meta = $(  "#meta");
+  meta.textContent = data.accounts.length + " accounts | " + data.transfer_log.length + " recent transfers";
+  populateSelects(data.accounts);
+}
+
+function renderAccounts(accounts) {
+  var root = $("#accounts");
+  root.textContent = "";
+  accounts.forEach(function(a) {
+    var div = document.createElement("div");
+    div.className = "account-card";
+    var name = document.createElement("div");
+    name.className = "a-name";
+    name.textContent = a.name;
+    var bal = document.createElement("div");
+    bal.className = "a-balance";
+    bal.textContent = "$" + a.balance;
+    div.appendChild(name);
+    div.appendChild(bal);
+    root.appendChild(div);
+  });
+}
+
+function renderLog(logs) {
+  var tbody = document.querySelector("#log-table tbody");
+  tbody.textContent = "";
+  if (!logs.length) {
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "empty-note";
+    td.style.textAlign = "center";
+    td.textContent = "No transfers yet";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  logs.forEach(function(l) {
+    var tr = document.createElement("tr");
+    var cells = [l.from, l.to, "$" + l.amount, l.created_at];
+    cells.forEach(function(val, idx) {
+      var td = document.createElement("td");
+      td.textContent = val;
+      if (idx === 3) { td.style.color = "#666"; td.style.fontSize = ".78rem"; }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function populateSelects(accounts) {
+  var names = accounts.map(function(a) { return a.name; });
+  ["#tf-from", "#tf-to"].forEach(function(sel, idx) {
+    var select = $(sel);
+    var current = select.value;
+    select.textContent = "";
+    names.forEach(function(n) {
+      var opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      if (n === current) opt.selected = true;
+      select.appendChild(opt);
+    });
+    if (!select.value && names.length > idx) select.value = names[idx];
+  });
+}
+
+function toast(msg) {
+  var t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(function() { t.classList.remove("show"); }, 1800);
+}
+
+async function doSeed() {
+  await fetch("/test/api/seed/", { method: "POST" });
+  toast("Re-seeded.");
+  setHtml($("#atomic-result"),    '<span class="empty-note">Click to run. Watch for SAVEPOINT pairs.</span>');
+  setHtml($("#subatomic-result"), '<span class="empty-note">Click to run. No SAVEPOINT queries.</span>');
+  setHtml($("#transfer-result"),  '<span class="empty-note">Run a transfer to see the SQL.</span>');
+  await loadState();
+}
+
+async function runAtomicDemo() {
+  var btn = $("#btn-atomic");
+  btn.disabled = true;
+  btn.textContent = "Running...";
+  setHtml($("#atomic-result"), '<span class="empty-note">Running...</span>');
+  var res = await fetch("/test/api/demo-atomic/", { method: "POST" });
+  var data = await res.json();
+  renderDemoResult("#atomic-result", data);
+  btn.disabled = false;
+  btn.textContent = "Run atomic() demo";
+  await loadState();
+}
+
+async function runSubatomicDemo() {
+  var btn = $("#btn-subatomic");
+  btn.disabled = true;
+  btn.textContent = "Running...";
+  setHtml($("#subatomic-result"), '<span class="empty-note">Running...</span>');
+  var res = await fetch("/test/api/demo-subatomic/", { method: "POST" });
+  var data = await res.json();
+  renderDemoResult("#subatomic-result", data);
+  btn.disabled = false;
+  btn.textContent = "Run subatomic demo";
+  await loadState();
+}
+
+async function doTransfer() {
+  var fromName = $("#tf-from").value;
+  var toName   = $("#tf-to").value;
+  var amount   = parseFloat($("#tf-amount").value);
+  var mode     = $("#tf-mode").value;
+
+  if (fromName === toName) { toast("From and To must be different."); return; }
+
+  var res = await fetch("/test/api/transfer/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: fromName, to: toName, amount: amount.toFixed(2), mode: mode }),
+  });
+  var data = await res.json();
+  var container = $("#transfer-result");
+
+  if (!data.ok && data.error) {
+    setHtml(container, '<span class="badge b-err" style="font-size:.84rem;">Error: ' + e(data.error) + '</span>');
+    toast("Transfer failed: " + data.error);
+    return;
+  }
+
+  var modeLabel = mode === "atomic" ? "atomic()" : "subatomic";
+  var summary = '<div class="sql-summary"><strong>' + e(modeLabel) + '</strong>: <strong>' + data.query_count + '</strong> SQL statements &nbsp;|&nbsp; ' + spCounterHtml(data.savepoint_count, data.release_count) + '</div>';
+  setHtml(container, summary + renderSqlLog(data.sql));
+  toast("Transfer OK via " + modeLabel);
+  await loadState();
+}
+
+loadState();
+</script>
+</body>
+</html>

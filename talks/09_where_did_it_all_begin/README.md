@@ -142,17 +142,19 @@ Unlike Django's `on_commit`, `run_after_commit` raises if no transaction is open
 
 ## Experiment
 
-The `experiment/` folder has a runnable Django project that demonstrates the difference between `atomic()` and `django-subatomic`. Try it:
+A runnable Django project in this folder demonstrates the difference between `atomic()` and `django-subatomic`. Try it:
 
 ```bash
-cd experiment
 docker compose up -d                # starts PostgreSQL on port 55435
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_data
+python manage.py runserver
 ```
 
-Then run the demos:
+Then open http://localhost:8000/test/ for an interactive panel showing the SQL difference side by side.
+
+Or run the demos from the command line:
 
 ```bash
 # Show how atomic() creates unnecessary savepoints
